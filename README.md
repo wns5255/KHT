@@ -31,8 +31,10 @@ RAG(Retrieval-Augmented Generation)와 공공데이터를 결합하여:
   - 등장 작품/에피소드/배우 정보
   - 행정구역 및 좌표 후보
 - 중복/오류 데이터 정제 후 CSV/JSON 형태로 제공
-<img width="838" height="5006" alt="image" src="https://github.com/user-attachments/assets/9ab9350c-7803-465d-ae31-39a34bb1bf76" />
-<img width="838" height="5006" alt="image" src="https://github.com/user-attachments/assets/9ab9350c-7803-465d-ae31-39a34bb1bf76" />
+<p align="center">
+  <img width="420" alt="image" src="https://github.com/user-attachments/assets/9ab9350c-7803-465d-ae31-39a34bb1bf76" />
+  <img width="420" alt="image" src="https://github.com/user-attachments/assets/9ab9350c-7803-465d-ae31-39a34bb1bf76" />
+</p>
 
 ### 2. 공공데이터 매칭
 
@@ -42,8 +44,8 @@ RAG(Retrieval-Augmented Generation)와 공공데이터를 결합하여:
 - 촬영지와 공공데이터 매칭을 통해  
   **“드라마 속 장소 → 실제 방문 가능한 관광 코스”** 구성
 <p align="center">
-  <img width="985" height="817" alt="image" src="https://github.com/user-attachments/assets/23551868-067d-4292-bdfd-5d76295e9ec3" />
-  <img width="1238" height="959" alt="image" src="https://github.com/user-attachments/assets/c2c79d3b-9838-4fd9-8248-9582133bfff5" />
+  <img width="420" alt="image" src="https://github.com/user-attachments/assets/23551868-067d-4292-bdfd-5d76295e9ec3" />
+  <img width="420" alt="image" src="https://github.com/user-attachments/assets/c2c79d3b-9838-4fd9-8248-9582133bfff5" />
 </p>
 
 ### 3. 지도 기반 UI
@@ -55,7 +57,7 @@ RAG(Retrieval-Augmented Generation)와 공공데이터를 결합하여:
   - 인포윈도우/팝업에 상세 정보 표시
 - (선택) OpenLayers + WMTS 오버레이로 역사/테마 레이어 확장 가능
 <p align="center">
-  <img width="1025" height="717" alt="image" src="https://github.com/user-attachments/assets/9f82a747-41e2-49ff-9c4d-82944594b33c" />
+  <img width="420" alt="image" src="https://github.com/user-attachments/assets/9f82a747-41e2-49ff-9c4d-82944594b33c" />
 </p>
 ### 4. 코스 추천 및 사용자 기능
 
