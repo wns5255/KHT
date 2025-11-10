@@ -59,11 +59,27 @@ RAG(Retrieval-Augmented Generation)와 공공데이터를 결합하여:
 <p align="center">
   <img width="420" alt="image" src="https://github.com/user-attachments/assets/9f82a747-41e2-49ff-9c4d-82944594b33c" />
 </p>
+
 ### 4. 코스 추천 및 사용자 기능
 
 - 사용자가 선택한 촬영지 기반 **코스 자동 추천**
 - 즐겨찾기(보관함), 필터, 정렬 등 UX 기능
 - 1일 코스 / 주말 코스 / 작품별 성지순례 코스 등 시나리오 구성 가능
+<p align="center">
+  <img width="420" alt="image" src="https://github.com/user-attachments/assets/dee35f61-bc37-45c4-ba7a-739af21f997d" />
+  <img width="420" alt="image" src="https://github.com/user-attachments/assets/471be337-70b6-4104-9d8b-2b1a7b09bac9" />
+</p>
+
+### 5. RAG 및 AI 챗봇 기능
+
+- 최신 드라마 촬영지 정보를 RAG로 추출
+- 관련 정보를 openAPI에 전달하여 촬영지 관련 챗봇 기능 구현
+- 외국 여행자를 위한 실시간 AI 번역 가능
+<p align="center">
+  <img width="420" alt="image" src="https://github.com/user-attachments/assets/eeee4b67-5fda-4512-b75f-2e407177f465" />
+  <img width="420" alt="image" src="https://github.com/user-attachments/assets/471be337-70b6-4104-9d8b-2b1a7b09bac9" />
+</p>
+
 
 ---
 
