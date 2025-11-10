@@ -78,7 +78,8 @@ RAG(Retrieval-Augmented Generation)와 공공데이터를 결합하여:
 - 외국 여행자를 위한 실시간 AI 번역 가능
 <p align="center">
   <img width="420" alt="image" src="https://github.com/user-attachments/assets/eeee4b67-5fda-4512-b75f-2e407177f465" />
-  <img width="420" alt="image" src="https://github.com/user-attachments/assets/471be337-70b6-4104-9d8b-2b1a7b09bac9" />
+  <img width="420" alt="image" src="https://github.com/user-attachments/assets/1a1b6016-8361-4bd3-ada2-0c9de5851d77" />
+
 </p>
 
 
