@@ -1,0 +1,361 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+
+  <link rel="icon" href="/source/logo.svg" type="image/svg+xml">
+  <link rel="dns-prefetch" href="//t1.daumcdn.net">
+  <link rel="preconnect" href="https://t1.daumcdn.net" crossorigin>
+  <link rel="stylesheet" href="css/app.css">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <title>KHT 드라마 촬영지 탐색</title>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="loadingOverlay">불러오는 중...</div>
+  <div class="top-fade" aria-hidden="true"></div>
+  <header class="topbar">
+    <div class="toolbar">
+      <div class="brand">
+        <!-- 번역 토글 버튼 -->
+        <button id="btnTranslateToggle" class="icon-btn" aria-pressed="false" title="영어로 번역">
+          <img src="/source/trans.png" alt="번역">
+          <span class="sr-only">Translate</span>
+        </button>
+        <div class="logo"></div>
+        <b style="color:#000">KHT</b>
+            <!-- <span class="tagline">K-콘텐츠 촬영지 여행</span> -->
+      </div>
+      <div class="mobile-inline" aria-label="모바일 검색">
+        <select id="mModeInline">
+          <option value="drama">드라마</option>
+          <option value="film">영화</option>
+          <option value="actor">배우</option>
+          <option value="place">장소</option>
+        </select>
+        <input id="mKeywordInline" placeholder="작품/배우명" autocomplete="off" autocapitalize="none" spellcheck="false"/>
+        <button id="mGoInline" class="btn-mint" type="button">검색</button> <!-- ⬅ 추가 -->
+              <div class="actions-inline" aria-label="빠른 액션">
+        <label class="chk">
+          <input id="mDoRefreshInline" type="checkbox" />
+          <span>업데이트</span>
+        </label>
+
+        <button id="mFitAllInline"  class="ghost" type="button">전체보기</button>
+        <button id="mMyBoxInline"   class="ghost" type="button">내 보관함</button>
+        <button id="mLoginInline"   class="ghost" type="button">로그인</button>
+      </div>
+        <!-- 모바일 인라인 액션줄: 검색창 바로 아래 -->
+      </div>
+      <div class="grow pc-search">
+        <select id="mode">
+          <option value="drama">드라마</option>
+          <option value="film">영화</option>
+          <option value="actor">배우</option>
+          <option value="place">장소</option>
+        </select>
+        <input id="keyword" placeholder="작품/배우명으로 검색" autocomplete="off" autocapitalize="none" spellcheck="false"/>
+        <input id="query" value="추천 코스 알려줘"/>
+      </div>
+      <div class="pc-search">
+        <label style="display:flex;align-items:center;gap:6px">
+          <input id="doRefresh" type="checkbox" />
+         <span style="font-size:12px;opacity:.9;color:#000">업데이트</span>
+        </label>
+        <button id="go"><span id="goLabel">검색</span></button>
+        <button id="fitAll" class="ghost">전체 보기</button>
+        <button id="btnMyBox" class="ghost">내 보관함</button>
+        <button id="btnLogin" class="ghost">로그인</button>
+      </div>
+      <div id="authModal" style="display:none; position:fixed; inset:0; z-index:5000; background:rgba(0,0,0,.55)">
+        <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%); width:320px; background:#0f172a; border:1px solid #1f2a45; border-radius:14px; padding:14px;">
+          <div style="font-weight:700;margin-bottom:8px">로그인/가입 (테스트ID: 11 / PW : 11)</div>
+          <input id="authUser" placeholder="아이디" style="width:100%;margin-bottom:6px">
+          <input id="authPass" placeholder="비밀번호" type="password" style="width:100%;margin-bottom:10px">
+          <div style="display:flex; gap:8px; justify-content:flex-end">
+            <button id="doSignup" class="ghost">회원가입</button>
+            <button id="doLogin">로그인</button>
+            <button id="authClose" class="ghost">닫기</button>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </header>
+  <!-- 작품 정보 카드 -->
+  <aside id="workCard" class="work-card" aria-live="polite" style="display:none"></aside>
+  <!-- 모바일 검색 도크 -->
+  <section id="searchDock" class="search-dock">
+    <div class="inputs">
+      <select id="mMode">
+        <option value="drama">드라마</option>
+        <option value="film">영화</option>
+        <option value="actor">배우</option>
+        <option value="place">장소</option>
+      </select>
+      <input id="mKeyword" placeholder="작품/배우명" autocomplete="off" autocapitalize="none" spellcheck="false"/>
+    </div>
+
+    <div class="actions">
+      <label class="chk">
+        <input id="mDoRefresh" type="checkbox" />
+        <span>업데이트</span>
+      </label>
+
+      <button id="mGo" class="btn-mint">검색</button>
+      <button id="mFitAll" class="ghost">전체보기</button>
+      <button id="mMyBox" class="ghost">내 보관함</button>
+      <button id="mLogin" class="ghost">로그인</button>
+
+      <!-- 관광 API 뷰에서만 노출 -->
+      <button id="backFromTour" class="ghost" style="display:none">← 돌아가기</button>
+    </div>
+  </section>
+  <!-- 좌측 패널 -->
+  <aside class="side">
+    <div class="panel">
+      <div class="tabs" role="tablist">
+        <div class="tab active" role="tab" aria-selected="true"  aria-controls="panel-results" data-tab="results">검색결과</div>
+        <div class="tab"         role="tab" aria-selected="false" aria-controls="panel-courses" data-tab="courses">추천 코스</div>
+        <div class="tab"         role="tab" aria-selected="false" aria-controls="panel-mine"    data-tab="mine">내 보관함</div>
+      </div>
+      <div class="searchbar">
+        <input id="filter" placeholder="리스트에서 검색(주소/이름/작품)"/>
+        <button id="clearFilter" class="btn-mint">지우기</button>
+      </div>
+      <div id="panel-results" class="results"></div>
+      <div id="panel-courses" class="results" style="display:none"></div>
+      <div id="panel-mine" class="results" style="display:none"></div>
+    </div>
+  </aside>
+      <!-- ===== AI 챗봇 Floating Button & Panel ===== -->
+    <div id="chatFab" style="
+      position:absolute;
+      right:80px;
+      bottom:17px;
+      z-index:100002;
+
+      width: 52px;
+      height:52px;
+      border-radius:10px;
+
+      background:#0f172a;
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow:0 16px 32px rgba(0,0,0,.45);
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      cursor:pointer;
+      user-select:none;
+      padding:0;
+    ">
+      <img src="/history/ai-bubble-rounded-badge.png"
+          alt="AI 챗봇 (궁금한점을 물어보세요)"
+          style="
+            width:50px;
+            height:50px;
+            display:block;
+          "/>
+    </div>
+
+
+    <div id="chatPanel" style="
+      position:absolute;
+      right:16px;
+      bottom:180px;
+      width:320px;
+      max-width:80vw;
+      max-height:50vh;
+      display:none;
+      flex-direction:column;
+      background:rgba(17,24,39,.95);
+      border:1px solid rgba(255,255,255,.15);
+      border-radius:12px;
+      box-shadow:0 20px 40px rgba(0,0,0,.6);
+      backdrop-filter: blur(8px);
+      color:#fff;
+      font:13px/1.4 system-ui,'Noto Sans KR';
+      z-index:100003;
+    ">
+      <div style="padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; align-items:center; justify-content:space-between;">
+        <div style="font-size:13px; font-weight:600;">AI 챗봇 (궁금한점을 물어봐요)</div>
+        <button id="chatClose" style="background:transparent;border:0;color:#fff;font-size:14px;opacity:.6;cursor:pointer;">✕</button>
+      </div>
+
+      <div id="chatMessages" style="flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px;"></div>
+
+      <div style="border-top:1px solid rgba(255,255,255,.08); padding:8px 10px; display:flex; gap:6px;">
+        <input id="chatInput" type="text" placeholder="무엇이 궁금해요?" style="
+          flex:1;
+          background:#1f2937;
+          border:1px solid rgba(255,255,255,.2);
+          color:#fff;
+          font-size:13px;
+          line-height:1.4;
+          border-radius:8px;
+          padding:8px 10px;
+          outline:none;
+        "/>
+        <button id="chatSend" style="
+          background:#4f46e5;
+          border:0;
+          font-size:13px;
+          font-weight:600;
+          color:#fff;
+          border-radius:8px;
+          padding:8px 10px;
+          cursor:pointer;
+          white-space:nowrap;
+        ">보내기</button>
+      </div>
+    </div>
+  <!-- 모바일 하단 시트 -->
+  <section class="sheet" id="sheet" aria-label="결과 시트">
+    <div id="sheetHandle" class="grabber" aria-hidden="true"></div>
+    <div class="sheet-tabs">
+      <div class="sheet-tab active" data-stab="results">검색결과</div>
+      <div class="sheet-tab" data-stab="courses">추천 코스</div>
+      <div class="sheet-tab" data-stab="mine">내 보관함</div>
+    </div>
+    <div class="sheet-body">
+       
+      <div id="m-results" class="sheet-list"></div>
+      <div id="m-courses" class="sheet-list" style="display:none"></div>
+      <div id="m-mine" class="sheet-list" style="display:none"></div>
+    </div>
+  </section>
+  <div class="legend" id="legend" style="display:none"></div>
+  <!-- 첫 진입 안내 카드 -->
+  <div class="empty-card" id="emptyCard">
+    <h2>촬영지 탐색을 시작해보세요</h2>
+    <p>작품명(또는 배우명)을 입력하고 검색하면, 추천 코스와 함께 지도로 보여드려요.</p>
+    <div class="hint-row">
+      <span class="badge">예: 사내 맞선</span>
+      <span class="badge">예: 미스터 션샤인</span>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <!-- 상세보기 패널 -->
+  <aside id="place-detail" aria-hidden="true">
+    <div class="pd-viewport">
+      <header class="pd-header">
+        <div id="pd-cta" style="display:flex;gap:8px; padding:8px 18px; border-bottom:1px solid #1f2b3f; background:#0c152a">
+          <button id="ctaRoute" class="pd-more">길찾기</button>
+          <button id="ctaAdd"   class="pd-more">코스담기</button>
+          <button id="ctaShare" class="pd-more">공유</button>
+        </div>
+        <button class="pd-back" type="button" aria-label="뒤로가기">← 뒤로가기</button>
+        <div class="pd-headline">
+          <h2 id="pd-title">촬영지 제목</h2>
+          <p id="pd-addr" class="muted">주소</p>
+        </div>
+      </header>
+
+      <main class="pd-body">
+        <!-- 1. YouTube -->
+        <section class="pd-section">
+          <div class="pd-sec-head">
+            <h3>관련 영상</h3>
+            <button class="pd-more" data-sec="youtube" type="button">자세히보기</button>
+          </div>
+          <div id="pd-youtube" class="pd-hero-card placeholder">
+            <div class="ghost-line">#1 YouTube API (대표 영상)</div>
+          </div>
+        </section>
+
+        <!-- 2. 카카오 지도/로드뷰 -->
+        <section class="pd-section">
+          <div class="pd-sec-head"><h3>로드뷰</h3></div>
+          <div id="pd-roadmap" class="pd-hero-card placeholder">
+            <div class="ghost-line">#2 Kakao Map / Roadview</div>
+          </div>
+        </section>
+
+        <!-- 3. 구글 링크 카드 -->
+        <section class="pd-section">
+          <div class="pd-sec-head">
+            <h3>구글 링크 모음</h3>
+            <button class="pd-more" data-sec="google" type="button">자세히보기</button>
+          </div>
+          <div id="pd-google" class="pd-grid">
+            <div class="pd-card placeholder"><div class="ghost-line">#3 Google Link</div></div>
+            <div class="pd-card placeholder"><div class="ghost-line">#3 Google Link</div></div>
+            <div class="pd-card placeholder"><div class="ghost-line">#3 Google Link</div></div>
+            <div class="pd-card placeholder"><div class="ghost-line">#3 Google Link</div></div>
+          </div>
+        </section>
+
+        <!-- 4~6. TourAPI 미리보기 -->
+        <section class="pd-section">
+          <div class="pd-sec-head">
+            <h3>촬영지 주변 관광 정보</h3>
+            <button class="pd-more" data-sec="tourapi-attraction" type="button">자세히보기</button>
+          </div>
+          <div id="pd-tour-attraction" class="pd-grid">
+            <div class="pd-card placeholder"><div class="ghost-line">#4 TourAPI 명소</div></div>
+            <div class="pd-card placeholder"><div class="ghost-line">#4 TourAPI 명소</div></div>
+          </div>
+        </section>
+
+        <section class="pd-section">
+          <div class="pd-sec-head">
+            <h3>촬영지 주변 숙박 정보</h3>
+            <button class="pd-more" data-sec="tourapi-hotel" type="button">자세히보기</button>
+          </div>
+          <div id="pd-tour-hotel" class="pd-grid">
+            <div class="pd-card placeholder"><div class="ghost-line">#5 TourAPI 숙박</div></div>
+            <div class="pd-card placeholder"><div class="ghost-line">#5 TourAPI 숙박</div></div>
+          </div>
+        </section>
+
+        <section class="pd-section">
+          <div class="pd-sec-head">
+            <h3>촬영지 주변 음식점 정보</h3>
+            <button class="pd-more" data-sec="tourapi-food" type="button">자세히보기</button>
+          </div>
+          <div id="pd-tour-food" class="pd-grid">
+            <div class="pd-card placeholder"><div class="ghost-line">#6 TourAPI 음식</div></div>
+            <div class="pd-card placeholder"><div class="ghost-line">#6 TourAPI 음식</div></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </aside>
+  <!--지도 오버레이 툴바(옵션 탭 대체)-->
+  <div class="map-tools" id="mapTools">
+    <button data-act="fit">전체보기</button>
+    <button data-act="road">지도</button>
+    <button data-act="sky">스카이뷰</button>
+    <button data-act="routes-on">경로 보이기</button>
+    <button data-act="routes-off">경로 숨기기</button>
+  </div>
+  <!--코스 조작-->
+  <button id="fabTrip" aria-label="코스 담기" title="코스 담기">＋</button>
+  <!-- Kakao Maps -->
+  <script defer src="//dapi.kakao.com/v2/maps/sdk.js?appkey=4bb276d241fb320936df581512dc8f62&libraries=clusterer,services&autoload=false"></script>
+  <script src="js/app.js"></script> 
+  <script>
+    // const API_BASE = "https://rag.magiclab.kr"; // ← FastAPI가 떠 있는 쪽
+
+        // 열고 닫기
+  </script>
+  <!-- <script src="js/parts/00-preamble.js"></script>
+  <script src="js/parts/01-config-globals.js"></script>
+  <script src="js/parts/02-utils.js"></script>
+  <script src="js/parts/03-map-init.js"></script>
+  <script src="js/parts/04-sse.js"></script>
+  <script src="js/parts/05-map-helpers.js"></script>
+  <script src="js/parts/06-cards-rendering.js"></script>
+  <script src="js/parts/07-section.js"></script>
+  <script src="js/parts/08-kakao-roadview-mini.js"></script>
+  <script src="js/parts/09-google-programmable-search.js"></script>
+  <script src="js/parts/10-tourapi-api-tour-nearby.js"></script>
+  <script src="js/parts/11-youtube.js"></script>
+  <script src="js/parts/12-search-actions.js"></script>
+  <script src="js/parts/13-login-logout.js"></script>
+  <script src="js/parts/14-section.js"></script> -->
+  <!-- <script src="js/parts/15-postamble.js"></script>  -->
+</body>
+</html>

@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<link rel="icon" href="/source/logo.svg" type="image/svg+xml">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>KHT K-콘텐츠 촬영지 탐색</title>
+<link rel="icon" href="data:,">
+<style>
+  /* =========================
+   * Design Tokens
+   * ========================= */
+  :root{
+    --bg:#ffffff;                       /* 페이지 배경 */
+    --ink:#0b1326;                      /* 기본 본문 글색 */
+    --muted:#667085;                    /* 보조 텍스트 */
+    --line:#eef2f6;                     /* 경계선 */
+    --mint: rgb(172,225,215);           /* 포인트 민트 (172,225,215) */
+    --btn-dark-bg: rgba(11,19,38,.92);  /* 포인트 외 버튼 배경 */
+    --btn-dark-fg: #dce7ff;             /* 포인트 외 버튼 글자색 */
+    --btn-dark-bd: #1e2d4a;             /* 포인트 외 버튼 보더 */
+    --shadow: 0 20px 40px rgba(0,0,0,.10);
+    --radius: 20px;
+    --radius-lg: 28px;
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans KR', Apple SD Gothic Neo, Arial, sans-serif; line-height:1.6}
+  img{max-width:100%;display:block}
+  a{color:inherit;text-decoration:none}
+
+  .wrap{max-width:1200px;margin:0 auto;padding:28px 20px 80px}
+
+  /* =========================
+   * 1) 이미지(히어로) 영역
+   * ========================= */
+  .hero{
+    position:relative;
+    overflow:hidden;
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(1200px 400px at 10% 10%, rgba(172,225,215,.35), transparent 55%),
+      radial-gradient(800px 300px at 90% 30%, rgba(172,225,215,.25), transparent 60%),
+      linear-gradient(180deg,#f9fbfc, #f2fbf8);
+    min-height: 420px;
+    box-shadow: var(--shadow);
+  }
+
+  @media(max-width:720px){
+    .hero{min-height: 220px;}
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 5px 10px 80px;
+    }
+  }
+  .hero__img{
+    position:absolute; inset:0;
+    /* 메인화면*/
+    background-image: url("./ban.png");
+    background-size:cover; background-position:center;
+  }
+  .hero__copy{
+    position:relative; z-index:1;
+    padding:48px clamp(20px, 4vw, 64px);
+    max-width: 820px;
+  }
+  .eyebrow{
+    display:inline-block;
+    background: rgba(172,225,215,.35);
+    color:#094c42;
+    font-weight:600;
+    padding:6px 12px;
+    border-radius:999px;
+    letter-spacing:.02em;
+    margin-bottom:14px;
+  }
+  .hero__title{
+    margin:0 0 10px;
+    font-size: clamp(28px, 4.5vw, 46px);
+    line-height:1.2;
+  }
+  .hero__desc{
+    color:var(--muted);
+    margin:0;
+    font-size: clamp(14px, 1.6vw, 18px);
+  }
+
+  /* =========================
+   * 2) 큰 버튼 2개
+   * ========================= */
+  .cta{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:16px;
+    margin:26px 0 44px;
+  }
+  @media(min-width:720px){
+    .cta{grid-template-columns: 1fr 1fr}
+  }
+  .btn{
+    display:flex; align-items:center; justify-content:space-between;
+    font-family: "Black Han Sans", sans-serif;
+    /* padding:22px 22px; */
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    transition: transform .2s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
+    font-weight: 700;
+    letter-spacing:.01em;
+    background-color: #abf8ff;
+  }
+  .btn .subs{
+    background-color: #f9e4c9;
+    align-items:center; justify-content:space-between;
+    border-radius: var(--radius);
+    border:1px solid transparent;
+    box-shadow: var(--shadow);
+    transition: transform .2s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
+    font-weight: 700;
+    letter-spacing:.01em;
+  }
+  .btn .sub{
+    display:block; font-weight:500; color:#1b3a36; opacity:.8; letter-spacing:0; font-size: .92em;
+  }
+  .btn--mint{
+    background: var(--mint);
+    color:#043c35;
+  }
+  .btn--dark{
+    background: rgb(248 215 175);
+    color: var(--btn-dark-fg);
+    /* border-color: var(--btn-dark-bd); */
+    box-shadow:none;
+  }
+  .btn:hover{ transform: translateY(-2px); }
+  .btn__arrow{ font-size:22px; opacity:.8 }
+
+  .btn{ gap:14px; }                    /* 아이콘 여백 */
+  .btn{ gap:14px; }                    /* 아이콘 여백 */
+
+  /* === CTA 아이콘: 배경 제거 + 크기 키우기 (override) === */
+  .btn__icon{
+    background: transparent !important; /* 반투명 배경 제거 */
+    box-shadow: none !important;
+    border: 0 !important;
+    width: 130px;           /* 아이콘 더 크게 */
+    height: 130px;          /* 아이콘 더 크게 */
+    justify-self: center;                 /* 아이콘 가운데 정렬 */
+    border-radius: 0;      /* 둥근 배경 느낌 제거 */
+    overflow: visible;     /* 이미지 가장자리 잘림 방지 */
+    padding: 0;
+  }
+  .btn--dark .btn__icon{ background: transparent !important; }
+
+  .btn__icon img{
+    width: 100%;
+    height: 100%;
+    object-fit: contain;   /* 원본 비율 유지 */
+    background: transparent;
+    align-items: center;
+    border-radius: 0;
+    display: block;
+  }
+  @media (max-width: 640px){
+    .btn__icon{ width: 100px; height: 100px; }
+  }
+  /* 모바일에서는 살짝만 줄임 */
+  @media (max-width: 640px){
+    .btn__icon{ width: 100px; height: 100px; }
+  }
+
+
+  /* =========================
+   * 3) 카드뉴스 영역 공통
+   * ========================= */
+  .section{
+    margin:44px 0 60px;
+  }
+  .section__head{
+    display:flex; align-items:end; justify-content:space-between; gap:16px;
+    margin-bottom:16px;
+  }
+  .section__title{ margin:0; font-size: clamp(20px, 2.4vw, 26px) }
+  .section__sub{ margin:0; color:var(--muted); font-size:14px }
+
+  .marquee{
+    position:relative;
+    border:1px solid var(--line);
+    border-radius: 16px;
+    padding:12px 0;
+    overflow:hidden;
+    background: #fff;
+    margin: 10px 0;
+  }
+  .track{
+    display:flex; gap:0; align-items:stretch;
+    flex-wrap: nowrap;          /* 추가 */
+    will-change: transform;
+    animation: scroll-x linear infinite both;
+    animation-duration: var(--speed, 32s);
+    animation-play-state: running;
+  }
+
+  /* 마지막 카드 뒤에 여백 주기 */
+  .set{ display:flex; gap:14px; flex:0 0 auto; padding-right:14px; }
+  /* 1,3줄: 왼->오 (기본) / 2줄: 오->왼 (reverse) */
+  .marquee[data-direction="reverse"] .track{ animation-direction: reverse; }
+
+  /* 행에 마우스오버 시 해당 줄만 정지 */
+  .marquee:hover .track{ animation-play-state: paused; }
+/* 
+  @keyframes scroll-x{
+    from { transform: translateX(0%); }
+    to   { transform: translateX(-50%); }
+  } */
+
+  @keyframes scroll-x{
+    from { transform: translate3d(0,0,0); }        /* translate3d로 서브픽셀 떨림 감소 */
+    to   { transform: translate3d(-100%,0,0); }
+  }
+  .card{
+    flex: 0 0 clamp(220px, 30vw, 340px);
+    background:#ffffff;
+    border:1px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow: 0 6px 16px rgba(0,0,0,.05);
+    transition: transform .2s ease, box-shadow .2s ease;
+    position:relative;
+  }
+  .card:hover{
+    transform: scale(1.06);
+    z-index:5;
+    box-shadow: 0 14px 28px rgba(0,0,0,.12);
+  }
+  .card__thumb{
+    aspect-ratio: 8/9;
+    background:
+      linear-gradient(0deg, rgba(0,0,0,.08), rgba(0,0,0,.08)),
+      linear-gradient(135deg, rgba(172,225,215,.35), rgba(172,225,215,.1));
+    display:flex; align-items:center; justify-content:center;
+    color:#064e44; font-weight:800; letter-spacing:.08em;
+  }
+
+  .card__thumb img{
+    width:100%;
+    height:100%;
+    object-fit:cover; /* 잘리는 건 바깥으로 */
+    display:block;
+  }
+  .card__body{ padding:12px 14px 16px }
+  .badge{
+    display:inline-block; font-size:12px; font-weight:700; letter-spacing:.04em;
+    padding:4px 8px; border-radius:999px; background:rgba(172,225,215,.35); color:#0a4a42; margin-bottom:8px;
+  }
+  .card__title{ margin:0 0 4px; font-size:16px; line-height:1.35 }
+  .card__desc{ margin:0; font-size:13px; color:var(--muted) }
+
+  /* 접근성: 모션 줄이기 선호 */
+  @media (prefers-reduced-motion: reduce){
+    .track{ animation-duration: 0s; transform: none !important; }
+  }
+
+  /* 푸터(설명용) */
+  .footnote{ color:var(--muted); font-size:13px; margin-top:8px }
+
+  /* === People card 전용 보강 === */
+  .people-grid{
+    display:grid; gap:16px;
+    grid-template-columns: repeat(2, minmax(160px,1fr));
+  }
+  @media (min-width:720px){ .people-grid{ grid-template-columns: repeat(3,1fr); } }
+  @media (min-width:960px){ .people-grid{ grid-template-columns: repeat(5,1fr); } }
+
+  .p-card{
+    display:flex; flex-direction:column;
+    background:#fff; border:1px solid var(--line); border-radius:14px;
+    box-shadow:0 6px 16px rgba(0,0,0,.05); overflow:hidden;
+    transition:transform .2s ease, box-shadow .2s ease;
+  }
+  .p-card:hover{ transform:translateY(-2px); box-shadow:0 14px 28px rgba(0,0,0,.12); }
+
+  .p-avatar{
+    position:relative; aspect-ratio:4/4; overflow:hidden;
+    background:
+      radial-gradient(60% 80% at 40% 30%, rgba(172,225,215,.45), transparent 60%),
+      linear-gradient(135deg, #eef5f3, #e9f7f3);
+    display:grid; place-items:center;
+    position:relative;
+  }
+  .p-avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .p-initial{
+    font-weight:800; font-size:38px; letter-spacing:.02em; color:#0a4a42; opacity:.8;
+  }
+
+  .p-body{ padding:12px 14px 14px; }
+  .p-name{ margin:0 0 4px; font-size:16px; line-height:1.35; }
+  .p-role{ margin:0; font-size:13px; color:var(--muted); }
+  .p-tags{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .p-tag{ font-size:11px; font-weight:700; padding:4px 8px; border-radius:999px; background:rgba(172,225,215,.35); color:#0a4a42; }
+  .p-credit{
+    position:absolute; right:6px; bottom:6px;
+    padding:2px 6px;
+    font-size:10px; line-height:1;
+    color : #fff;
+    /* color:#fff; background:rgba(0,0,0,.45); */
+    border-radius:6px;
+    /* backdrop-filter: blur(2px); */
+    pointer-events:none;           /* 클릭 방해 X */
+    user-select:none;
+  }
+  .p-photo{
+    position:absolute; right:6px; top:6px;
+    padding:2px 6px;
+    font-size:10px; line-height:1;
+    color : #fff;
+    /* color:#fff; background:rgba(0,0,0,.45); */
+    border-radius:6px;
+    /* backdrop-filter: blur(2px); */
+    pointer-events:none;           /* 클릭 방해 X */
+    user-select:none;
+  }
+  /* === CTA 버튼 높이/아이콘 크기 한 번에 조절 === */
+  :root{
+    --cta-h: 130px;          /* 버튼 세로 최소높이(원하는 값으로 조절) */
+    --cta-padding-y: 20px;   /* 위/아래 패딩 */
+    --cta-icon: 84px;        /* 아이콘 가로/세로 */
+  }
+  
+  .btn{
+    min-height: var(--cta-h) !important;
+    /* padding-block: var(--cta-padding-y) !important;  위/아래 패딩 */
+    align-items: center;                              /* 세로 가운데 정렬 */
+  }
+
+  /* .btn__icon{
+    width: var(--cta-icon) !important;
+    height: var(--cta-icon) !important;
+  } */
+
+  /* 모바일에선 조금만 줄이기(선택) */
+  @media (max-width: 640px){
+    :root{
+      --cta-h: 100px;
+      --cta-padding-y: 16px;
+      --cta-icon: 72px;
+    }
+  }
+
+    /* === CTA 레이아웃: 아이콘:텍스트 = 1:1, 화살표는 오른쪽 고정 === */
+  .btn {
+    display: block;
+    width: 100%;
+  }
+
+  .btn__content{
+    display: grid !important;
+    grid-template-columns: 1fr 1.4fr auto; /* 아이콘 1 : 텍스트 1 : 화살표(auto) */
+    align-items: center;
+    gap: 16px;                            /* 필요 시 간격 조절 */
+    min-height: var(--cta-h, 110px);      /* 이전에 선언한 변수 사용 */
+    padding: var(--cta-padding-y, 18px) 20px;
+  }
+
+  .btn__title{                              /* 텍스트 박스 */
+    justify-self: center;
+    font-size: 35px;
+    text-align: center;
+  }
+
+  .btn__chevron{                           /* 오른쪽 화살표/아이콘 */
+    justify-self: end;
+    white-space: nowrap;
+  }
+
+  /* 모바일에서 1:1 유지(선택사항) — 스택으로 바꾸고 싶으면 아래 구간 수정 */
+  @media (max-width: 640px){
+    .btn__content{
+      grid-template-columns: 1fr 1.4fr auto;
+      gap: 12px;
+    }
+  }
+
+  .black-han-sans-regular {
+    font-family: "Black Han Sans", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+  }
+
+</style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- =========================
+         1) 이미지 영역 (히어로)
+         - 실제 서비스에서는: 제품/플랫폼 대표 이미지 + 카피 문구
+         - 더미 데이터: SVG 패턴과 예시 문구
+         ========================= -->
+    <section class="hero" aria-label="플랫폼 소개 이미지 및 카피">
+      <div class="hero__img" aria-hidden="true"></div>
+    </section>
+
+    <!-- =========================
+         2) 큰 버튼 2개 (서로 다른 기능 페이지로 이동)
+         - 요구사항: 포인트(민트) / 포인트 외 버튼(다크)
+         - 실제 서비스에서는: href를 실 페이지 경로로 연결
+         - 더미 데이터: /product, /apply
+         ========================= -->
+    <nav class="cta" aria-label="주요 기능 바로가기">
+      <a class="btn" href="/modern/index.html" >
+        <div class="btn__content">
+          <img class="btn__icon" src="/source/current.png" alt="" />
+          <div class="btn__body">
+            <div class="btn__title"><div class="regu.black-han-sans-regularlar">드라마 촬영지</div></div>
+          </div>
+        </div>
+      </a>
+
+      <a class="btn" href="/history/index.html" >
+        <div class="subs">
+          <div class="btn__content">
+            <img class="btn__icon" src="/source/history.png" alt="" />
+            <div class="btn__body">
+              <div class="btn__title"><div class="regu.black-han-sans-regularlar">역사 이야기</div></div>
+            </div>
+          </div>
+        </div>
+      </a>
+    </nav>
+
+    <!-- =========================
+         3) cardnew 영역 1
+         - 3줄의 자동 이동 카드뉴스
+         - 1,3줄: 왼→오 / 2줄: 오→왼
+         - 행에 마우스 올리면 해당 줄만 정지
+         - 카드에 마우스 올리면 확대 (추가 정보 노출 없음)
+         - 더미 데이터: 뉴스/가이드/사례 등 텍스트
+         ========================= -->
+
+    <section class="section" aria-label="cardnew 영역 2">
+      <div class="section__head">
+        <h2 class="section__title">K-콘텐츠 촬영지 추천 TOP5</h2>
+      </div>
+      <div class="marquee" data-direction="forward" data-speed="25s" aria-label="카드뉴스2 1행 (우→좌)">
+        <div class="track" style="--speed:25s">
+          <a href="/modern/" onclick="sessionStorage.setItem('deepSearch', JSON.stringify({mode:'drama', keyword:'눈물의 여왕'}));" class="card" title="눈물의 여왕 검색">
+            <div class="card__thumb">
+              <img src="/source/modern_drama/01.webp" alt="눈물의 여왕 포스터" loading="lazy" /><span class="p-photo">출처: 나무위키</span></div>
+              <div class="card__body">
+                <span class="badge">2025 HOT</span><h3 class="card__title">퀸의 발자취, 나의 한 컷, 눈물의 여왕 필름 로드</h3><p class="card__desc">눈물의 여왕</p>
+            </div>
+          </a>
+
+          <a href="/modern/" onclick="sessionStorage.setItem('deepSearch', JSON.stringify({mode:'drama', keyword:'케이팝 데몬 헌터스'}));" class="card" title="케이팝 데몬 헌터스 검색">
+            <div class="card__thumb">
+              <img src="/source/modern_drama/02.webp" alt="케이팝 데몬 헌터스 포스터" loading="lazy" /><span class="p-photo">출처: 나무위키</span></div>
+              <div class="card__body">
+                <span class="badge">2025 Global No.1</span><h3 class="card__title">네온 불빛 따라, 비트로 사냥하는 밤</h3><p class="card__desc">케이팝 데몬 헌터스</p>
+            </div>
+          </a>
+
+          <a href="/modern/" onclick="sessionStorage.setItem('deepSearch', JSON.stringify({mode:'drama', keyword:'오징어 게임'}));" class="card" title="오징어 게임 검색">
+            <div class="card__thumb">
+              <img src="/source/modern_drama/03.webp" alt="오징어 게임 포스터" loading="lazy" /><span class="p-photo">출처: 나무위키</span></div>
+              <div class="card__body">
+                <span class="badge">2025 HOT</span><h3 class="card__title">우리가 뛰던 그 트랙, 살아있는 스테이지 투어</h3><p class="card__desc">오징어 게임</p>
+            </div>
+          </a>
+
+          <a href="/modern/" onclick="sessionStorage.setItem('deepSearch', JSON.stringify({mode:'drama', keyword:'이상한 변호사 우영우'}));" class="card" title="이상한 변호사 우영우 검색">
+            <div class="card__thumb">
+              <img src="/source/modern_drama/04.webp" alt="이상한 변호사 우영우 포스터" loading="lazy" /><span class="p-photo">출처: 나무위키</span></div>
+              <div class="card__body">
+                <span class="badge">2024 HOT</span><h3 class="card__title">우당탕탕 이상한 코스의 시작</h3><p class="card__desc">이상한 변호사 우영우</p>
+            </div>
+          </a>
+
+          <a href="/modern/" onclick="sessionStorage.setItem('deepSearch', JSON.stringify({mode:'drama', keyword:'갯마을 차차차'}));" class="card" title="갯마을 차차차 검색">
+            <div class="card__thumb">
+              <img src="/source/modern_drama/05.webp" alt="갯마을 차차차 포스터" loading="lazy" /><span class="p-photo">출처: 나무위키</span></div>
+              <div class="card__body">
+                <span class="badge">2024 HOT</span><h3 class="card__title">바다와 골목 사이, 힐링 포토로드</h3><p class="card__desc">갯마을 차차차</p>
+            </div>
+          </a>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================
+         4) cardnew 영역 2 (동일 구조, 다른 데이터 샘플)
+         ========================= -->
+    <section class="section" aria-label="cardnew 영역 2">
+      <div class="section__head">
+        <h2 class="section__title">K-역사 여행 추천 TOP5</h2>
+      </div>
+
+      <!-- Row 1 -->
+      <div class="marquee" data-direction="reverse" data-speed="25s" aria-label="카드뉴스2 1행 (좌→우)">
+        <div class="track" style="--speed:25s">
+          <a href="/modern/" onclick="sessionStorage.setItem('deepSearch', JSON.stringify({mode:'film', keyword:'명량'}));" class="card" title="명량 검색">
+            <div class="card__thumb">
+              <img src="/source/histroy_drama/01.webp" alt="명량 포스터" loading="lazy" /><span class="p-photo">출처: 나무위키</span></div>
+              <div class="card__body">
+                <span class="badge">2025 HOT</span><h3 class="card__title">역사를 바꾼 위대한 전쟁, 그리고 지금</h3><p class="card__desc">명량</p>
+            </div>
+          </a>
+
+          <a href="/modern/" onclick="sessionStorage.setItem('deepSearch', JSON.stringify({mode:'drama', keyword:'옷소매 붉은 끝동'}));" class="card" title="옷소매 붉은 끝동 검색">
+            <div class="card__thumb">
+              <img src="/source/histroy_drama/02.webp" alt="옷소매 붉은 끝동 포스터" loading="lazy" /><span class="p-photo">출처: 나무위키</span></div>
+              <div class="card__body">
+                <span class="badge">2025 Global No.1</span><h3 class="card__title">왕과 사랑한 그녀의 이야기</h3><p class="card__desc">옷소매 붉은 끝동</p>
+            </div>
+          </a>
+
+          <a href="/modern/" onclick="sessionStorage.setItem('deepSearch', JSON.stringify({mode:'drama', keyword:'철인왕후'}));" class="card" title="철인왕후 검색">
+            <div class="card__thumb">
+              <img src="/source/histroy_drama/03.webp" alt="철인왕후 포스터" loading="lazy" /><span class="p-photo">출처: 나무위키</span></div>
+              <div class="card__body">
+                <span class="badge">2025 HOT</span><h3 class="card__title">우리도 이 세상 중전 되다?</h3><p class="card__desc">철인왕후</p>
+            </div>
+          </a>
+
+          <a href="/modern/" onclick="sessionStorage.setItem('deepSearch', JSON.stringify({mode:'drama', keyword:'미스터 션샤인'}));" class="card" title="미스터 션샤인 검색">
+            <div class="card__thumb">
+              <img src="/source/histroy_drama/04.webp" alt="미스터 션샤인 포스터" loading="lazy" /><span class="p-photo">출처: 나무위키</span></div>
+              <div class="card__body">
+                <span class="badge">2024 HOT</span><h3 class="card__title">그들은 그저 아무개다. 이는 곧 의병이다.</h3><p class="card__desc">미스터 션샤인</p>
+            </div>
+          </a>
+
+          <a href="/modern/" onclick="sessionStorage.setItem('deepSearch', JSON.stringify({mode:'drama', keyword:'옥씨부인전'}));" class="card" title="옥씨부인전 검색">
+            <div class="card__thumb">
+              <img src="/source/histroy_drama/05.webp" alt="옥씨부인전 포스터" loading="lazy" /><span class="p-photo">출처: 나무위키</span></div>
+              <div class="card__body">
+                <span class="badge">2024 HOT</span><h3 class="card__title">거짓 속에서 더 선명해지는 마음</h3><p class="card__desc">옥씨부인전</p>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-label="추천 인물">
+      <div class="section__head">
+        <h2 class="section__title">추천 인물</h2>
+      </div>
+
+      <div class="people-grid">
+
+        <!-- 1) 이병헌 -->
+        <a class="p-card" href="/modern/"
+          title="이병헌 검색"
+          onclick="sessionStorage.setItem('deepSearch', JSON.stringify({mode:'actor', keyword:'이병헌'}));">
+          <div class="p-avatar">
+            <!-- 이미지가 있으면 src만 교체 -->
+            <img src="/source/actor/01.webp" alt="이병헌" loading="lazy">
+            <span class="p-initial">LBH</span>
+            <span class="p-credit">출처: 나무위키</span>
+          </div>
+          <div class="p-body">
+            <h3 class="p-name">이병헌</h3>
+            <p class="p-role">미스터 션샤인 · 유진 초이</p>
+            <div class="p-tags">
+              <span class="p-tag">근대사</span><span class="p-tag">한옥·성곽</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- 2) 이정재 -->
+        <a class="p-card" href="/modern/"
+          title="이정재 검색"
+          onclick="sessionStorage.setItem('deepSearch', JSON.stringify({mode:'actor', keyword:'이정재'}));">
+          <div class="p-avatar">
+            <img src="/source/actor/02.webp" alt="이정재" loading="lazy">
+            <span class="p-initial">LJJ</span>
+            <span class="p-credit">출처: 나무위키</span>
+          </div>
+          <div class="p-body">
+            <h3 class="p-name">이정재</h3>
+            <p class="p-role">오징어 게임 · 성기훈</p>
+            <div class="p-tags">
+              <span class="p-tag">촬영세트</span><span class="p-tag">핫플</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- 3) 박은빈 -->
+        <a class="p-card" href="/modern/"
+          title="박은빈 검색"
+          onclick="sessionStorage.setItem('deepSearch', JSON.stringify({mode:'actor', keyword:'박은빈'}));">
+          <div class="p-avatar">
+            <img src="/source/actor/03.webp" alt="박은빈" loading="lazy">
+            <span class="p-initial">PEB</span>
+            <span class="p-credit">출처: 나무위키</span>
+          </div>
+          <div class="p-body">
+            <h3 class="p-name">박은빈</h3>
+            <p class="p-role">이상한 변호사 우영우</p>
+            <div class="p-tags">
+              <span class="p-tag">법원·도심</span><span class="p-tag">카페</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- 4) 신민아 -->
+        <a class="p-card" href="/modern/"
+          title="신민아 검색"
+          onclick="sessionStorage.setItem('deepSearch', JSON.stringify({mode:'actor', keyword:'신민아'}));">
+          <div class="p-avatar">
+            <img src="/source/actor/04.webp" alt="신민아" loading="lazy">
+            <span class="p-initial">SMA</span>
+            <span class="p-credit">출처: 나무위키</span>
+          </div>
+          <div class="p-body">
+            <h3 class="p-name">신민아</h3>
+            <p class="p-role">갯마을 차차차 · 혜진</p>
+            <div class="p-tags">
+              <span class="p-tag">바다</span><span class="p-tag">항구마을</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- 5) 김선호 -->
+        <a class="p-card" href="/modern/"
+          title="김선호 검색"
+          onclick="sessionStorage.setItem('deepSearch', JSON.stringify({mode:'actor', keyword:'김선호'}));">
+          <div class="p-avatar">
+            <img src="/source/actor/05.webp" alt="김선호" loading="lazy">
+            <span class="p-initial">KSH</span>
+            <span class="p-credit">출처: 나무위키</span>
+          </div>
+          <div class="p-body">
+            <h3 class="p-name">김선호</h3>
+            <p class="p-role">갯마을 차차차 · 두식</p>
+            <div class="p-tags">
+              <span class="p-tag">등대</span><span class="p-tag">골목</span>
+            </div>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- =========================
+       JS (데이터 주입/동작 설명용)
+       - 현재는 CSS 애니메이션만으로 동작
+       - 필요 시 속도를 data-speed 속성으로 조절
+       ========================= -->
+  <script>
+    // (선택) data-speed 속성을 CSS 변수로 반영
+    document.querySelectorAll('.marquee').forEach(row=>{
+      const speed = row.getAttribute('data-speed');
+      if(speed){
+        const track = row.querySelector('.track');
+        track && (track.style.setProperty('--speed', speed));
+      }
+    });
+
+    document.querySelectorAll('.marquee .track').forEach(track=>{
+      // 이미 .set이 있으면 스킵
+      if(track.querySelector('.set')) return;
+
+      const set = document.createElement('div');
+      set.className = 'set';
+      while(track.firstChild) set.appendChild(track.firstChild);
+      track.appendChild(set);
+
+      const clone = set.cloneNode(true);
+      clone.setAttribute('aria-hidden','true');
+      track.appendChild(clone);
+    });
+
+
+     (function autoSearchFromStorage(){
+        const KEY = 'deepSearch';
+        try{
+          const raw = sessionStorage.getItem(KEY);
+          if(!raw) return;
+          sessionStorage.removeItem(KEY);           // 재실행 방지
+          const { mode='drama', keyword='' } = JSON.parse(raw)||{};
+          if(!keyword) return;
+
+          const isMobile = window.matchMedia('(max-width: 900px)').matches;
+          if (isMobile) {
+            const mMode = document.querySelector('#mMode');
+            const mKw   = document.querySelector('#mKeyword');
+            const mGo   = document.querySelector('#mGo');
+            if (mMode && mKw && mGo){ mMode.value=mode; mKw.value=keyword; mGo.click(); }
+          } else {
+            const modeEl = document.querySelector('#mode');
+            const kwEl   = document.querySelector('#keyword');
+            const goBtn  = document.querySelector('#go');
+            if (modeEl && kwEl && goBtn){ modeEl.value=mode; kwEl.value=keyword; goBtn.click(); }
+          }
+        }catch(e){ console.warn('autoSearchFromStorage:', e); }
+      })();
+    // 데모: 런타임에 특정 행만 살짝 속도 변경하고 싶을 때 (예: API 응답량에 따라)
+    // row.dataset.speed = '16s'; 처럼 갱신 가능
+
+    </script>
+</body>
+</html>

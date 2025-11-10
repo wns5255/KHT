@@ -1,0 +1,1862 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  
+  <title>KHT 드라마&역사 이야기</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+
+  <!-- Kakao SDK: services 라이브러리 추가 (지오코더) -->
+  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=4bb276d241fb320936df581512dc8f62&autoload=false&libraries=services"></script>
+
+  <!-- OpenLayers & proj4 -->
+  <link rel="stylesheet" href="https://openlayers.org/en/v4.6.5/css/ol.css" type="text/css">
+  <script src="https://openlayers.org/en/v4.6.5/build/ol.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.1/proj4.min.js"></script>
+
+  <style>
+    html, body { height:100%; margin:0; }
+    #wrap { position:relative; width:100%; height:100%; }
+    #kmap {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+
+    #ol-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 99999;
+      background: transparent;
+      pointer-events: none;
+      display: block;
+    }
+    .toolbar{
+      position:absolute; top:12px; right:12px; z-index:100000;
+      background:rgba(15,17,32,.88); color:#fff; border-radius:12px; padding:10px 12px;
+      box-shadow:0 10px 24px rgba(0,0,0,.28);
+      font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans KR";
+      display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+    }
+    .toolbar button{
+      border:0; border-radius:10px; padding:8px 12px; cursor:pointer;
+      background:#5b9cff; color:#fff; font-weight:700;
+    }
+    .toolbar button[data-on="1"]{ background:#22c55e; }
+    .toolbar label{ display:flex; align-items:center; gap:6px; font-weight:600; }
+    .toolbar input[type="range"]{ width:120px; }
+    .note{ opacity:.8; }
+    .seg { display:flex; gap:6px; background:rgba(255,255,255,.06); border-radius:9px; padding:3px; }
+    .seg button{ background:transparent; border:1px solid rgba(255,255,255,.18); color:#fff; }
+    .seg button.active{ background:#22c55e; border-color:#22c55e; color:#fff; }
+
+    /* ===== 연대표(FAB + 패널) ===== */
+    .fab {
+      position:absolute; right:16px; bottom:16px; z-index:100000;
+      background:#111827; color:#fff; border-radius:999px; padding:10px 14px;
+      box-shadow:0 10px 24px rgba(0,0,0,.3); cursor:pointer; user-select:none;
+      font:14px/1 system-ui,"Noto Sans KR"; border:1px solid rgba(255,255,255,.15);
+    }
+    .timeline-panel{
+      position:absolute; right:16px; bottom:64px; z-index:100000;
+      width:min(1200px, 98vw);
+      max-width:98vw;
+      background:rgba(17,24,39,.94); color:#fff; border-radius:14px; padding:16px 18px 14px;
+      box-shadow:0 12px 28px rgba(0,0,0,.32); backdrop-filter: blur(6px);
+      display:none;
+    }
+    .timeline-header{
+      display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;
+      font:14px/1.2 system-ui,"Noto Sans KR"; opacity:.95;
+    }
+    .timeline-bar{
+      position:relative; width:100%; height:52px;
+      border-radius:12px; overflow:hidden;
+      background:rgba(255,255,255,.08);
+      cursor:pointer;
+      user-select:none;
+    }
+    .period{
+      position:absolute; top:0; bottom:0;
+      display:flex; align-items:center; justify-content:center;
+      padding:0 10px;
+      font-size:15px; line-height:1.2;
+      text-align:center; white-space:normal;
+      border-right:1px solid rgba(0,0,0,.15);
+      color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.45);
+      z-index:1;
+    }
+    .period span{ display:block; overflow:hidden; }
+    .ticks{
+      position:relative; height:24px; margin-top:8px;
+    }
+    .ticks .tick{
+      position:absolute; top:0; width:1px; height:100%; background:rgba(255,255,255,.25);
+    }
+    .ticks .tick-label{
+      position:absolute; top:12px; transform:translateX(-50%); font-size:12px; opacity:.85;
+      cursor:pointer;
+    }
+    .close-x{
+      cursor:pointer; border:0; background:transparent; color:#fff; opacity:.8; font-weight:700;
+    }
+    .tooltip{
+      position:absolute; background:#111827; color:#fff; border:1px solid rgba(255,255,255,.15);
+      padding:1px 8px; font-size:12px; border-radius:8px; pointer-events:none;
+      transform:translate(-40%, -8px); white-space:nowrap; display:none;
+      z-index: 1;
+    }
+
+    /* 클릭 연도 커서(세로선/배지/핸들) */
+    .year-cursor{
+      position:absolute; top:-6px; bottom:-6px; width:2px; background:#10b981;
+      box-shadow:0 0 0 2px rgba(16,185,129,.25);
+      border-radius:2px; pointer-events:none; z-index:10;
+    }
+    .year-badge{
+      position:absolute; top:-26px; transform:translateX(-50%);
+      background:#10b981; color:#081315; font-weight:700; font-size:12px;
+      padding:3px 6px; border-radius:6px; white-space:nowrap;
+      box-shadow:0 4px 10px rgba(0,0,0,.25); pointer-events:none; z-index:10;
+    }
+    .year-handle{
+      position:absolute; top:6px; bottom:6px; left:0; transform:translateX(-50%);
+      min-width:64px; padding:0 10px; border-radius:8px; border:1px solid rgba(255,255,255,.35);
+      background:rgba(255,255,255,.25); backdrop-filter: blur(2px);
+      display:none; align-items:center; justify-content:center; pointer-events:none; z-index:10;
+    }
+    .year-handle .txt{
+      font-weight:800; font-size:16px; color:#0b1220; text-shadow:0 1px 0 rgba(255,255,255,.5);
+    }
+
+    /* ===== 좌측 상세 패널 ===== */
+    .side-panel{
+      position:absolute;
+      left:0; top:0; bottom:0;
+      width:320px;
+      max-width:80vw;
+      background:rgba(17,24,39,.94);
+      color:#fff;
+      border-right:1px solid rgba(255,255,255,.08);
+      box-shadow:0 20px 40px rgba(0,0,0,.6);
+      backdrop-filter:blur(8px);
+      z-index:100001;
+      font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans KR";
+      transform:translateX(-100%);
+      transition:transform .22s cubic-bezier(.4,0,.2,1);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      display:flex;
+      flex-direction:column;
+    }
+    .side-panel.open{
+      transform:translateX(0);
+    }
+
+    .panel-head{
+      display:flex;
+      align-items:flex-start;
+      gap:12px;
+      padding:16px 16px 12px;
+    }
+
+    .panel-thumb img{
+      width:96px;
+      height:128px;
+      object-fit:cover;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,.2);
+      box-shadow:0 12px 24px rgba(0,0,0,.6);
+      background:#1f2937;
+    }
+
+    .panel-meta{
+      flex:1;
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .panel-meta h2{
+      font-size:15px;
+      font-weight:700;
+      line-height:1.3;
+      color:#fff;
+      margin:0;
+      word-break:keep-all;
+    }
+    .panel-sub{
+      font-size:12px;
+      line-height:1.4;
+      color:#9ca3af;
+      word-break:keep-all;
+      white-space:normal;
+    }
+
+    .panel-close{
+      position:absolute;
+      right:8px;
+      top:8px;
+      background:transparent;
+      border:0;
+      color:#fff;
+      opacity:.6;
+      font-size:16px;
+      font-weight:600;
+      line-height:1;
+      cursor:pointer;
+      padding:4px;
+    }
+    .panel-close:hover{ opacity:1; }
+
+    .panel-row{
+      padding:10px 16px 12px;
+      border-top:1px solid rgba(255,255,255,.07);
+    }
+
+    .panel-head{
+      flex-shrink:0;
+    }
+
+    .panel-scroll{
+      flex:1;
+      min-height:0;
+      overflow-y:auto;
+      border-top:1px solid rgba(255,255,255,.07);
+    }
+    .row-label{
+      font-size:11px;
+      font-weight:600;
+      line-height:1.3;
+      letter-spacing:-.02em;
+      color:#9ca3af;
+      text-transform:uppercase;
+      margin-bottom:2px;
+    }
+    .row-value{
+      font-size:13px;
+      line-height:1.4;
+      word-break:keep-all;
+      white-space:normal;
+      color:#fff;
+    }
+
+    @media(max-width:720px){
+    .timeline-panel{
+        width:min(300px, 98vw);
+      }
+    }
+    /* ===== 주변 관광/숙박/음식 섹션 ===== */
+    .near-block {
+      margin-top:10px;
+    }
+    .near-block:first-child {
+      margin-top:0;
+    }
+    .near-head {
+      font-size:12px;
+      font-weight:600;
+      line-height:1.4;
+      color:#60a5fa;
+      margin-bottom:4px;
+    }
+
+    .near-list {
+      list-style:none;
+      padding:0;
+      margin:0;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .near-li .near-title {
+      font-size:13px;
+      font-weight:600;
+      line-height:1.4;
+      color:#fff;
+      word-break:keep-all;
+    }
+    .near-li .near-addr {
+      font-size:12px;
+      line-height:1.4;
+      color:#9ca3af;
+      word-break:keep-all;
+      white-space:normal;
+    }
+    .near-item.active {
+      background:rgba(96,165,250,.12); /* 파란빛 하이라이트 */
+      border-radius:6px;
+    }
+  </style>
+  
+</head>
+<body>
+  <div id="wrap">
+    <div id="kmap"></div>
+
+    <!-- 왼쪽 상세 패널 -->
+    <div id="sidePanel" class="side-panel">
+      <div class="panel-head">
+        <div class="panel-thumb">
+          <img id="pImg" src="" alt="" />
+        </div>
+        <div class="panel-meta">
+          <h2 id="pTitle"></h2>
+          <div id="pYearPlace" class="panel-sub"></div>
+        </div>
+        <button id="panelClose" class="panel-close">✕</button>
+      </div>
+      <div class="panel-scroll">
+        <div class="panel-row">
+          <div class="row-label">장소</div>
+          <div class="row-value" id="pPlace"></div>
+        </div>
+
+        <div class="panel-row">
+          <div class="row-label">주소</div>
+          <!-- 이 div 안에 기본 ADDR + (있으면) CSV에서 찾은 adr 둘 다 넣을 거라 innerHTML로 채울 예정 -->
+          <div class="row-value" id="pAddr"></div>
+        </div>
+
+        <div class="panel-row">
+          <div class="row-label">관련 정보</div>
+          <div class="row-value" id="pName"></div>
+        </div>
+
+        <div class="panel-row">
+          <div class="row-label">설명</div>
+          <div class="row-value" id="pExp"></div>
+        </div>
+
+        <div class="panel-row">
+          <div class="row-label">출처</div>
+          <div class="row-value" id="pRef"></div>
+        </div>
+
+        <div class="panel-row" id="pAroundRow" style="display:none;">
+          <div class="row-label">주변</div>
+          <div class="row-value" id="pAround">
+            <div class="near-block">
+              <div class="near-head">관광지</div>
+              <ul class="near-list" id="nearAtList">
+                <!-- 로딩/결과가 JS에서 들어옴 -->
+              </ul>
+            </div>
+
+            <div class="near-block">
+              <div class="near-head">숙소</div>
+              <ul class="near-list" id="nearHoList"></ul>
+            </div>
+
+            <div class="near-block">
+              <div class="near-head">음식</div>
+              <ul class="near-list" id="nearFdList"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 툴바 -->
+    <div class="toolbar">
+      <button id="btnToggle" data-on="0">과거지도 켜기</button>
+
+      <div class="seg">
+        <button id="btn1919" class="active" data-year="1919">1919</button>
+        <button id="btn1970" data-year="1970">1970</button>
+      </div>
+
+      <label>불투명
+        <input id="opacity" type="range" min="0" max="1" step="0.05" value="0.1">
+      </label>
+
+      <span class="note">※ 멀리 축소 시 자동 페이드</span>
+    </div>
+
+    <!-- OL 레이어 (옛 지도) -->
+    <div id="ol-layer" class="map"></div>
+
+    <!-- 우하단 연대표 토글 & 패널 -->
+    <div id="fabTimeline" class="fab">연대표</div>
+    <div id="timelinePanel" class="timeline-panel">
+      <div class="timeline-header">
+        <div>영조 → 현대(공화국) 통치 구간</div>
+        <button id="closeTimeline" class="close-x">✕</button>
+      </div>
+      <div class="timeline-bar" id="timelineBar"></div>
+      <div class="ticks" id="timelineTicks"></div>
+      <div class="tooltip" id="timelineTip"></div>
+    </div>
+  </div>
+  <!-- ===== AI 챗봇 Floating Button & Panel ===== -->
+  <div id="chatFab" style="
+    position:absolute;
+    right:100px;
+    bottom:16px;
+    z-index:100002;
+
+    width: 35px;
+    height:35px;
+    border-radius:10px;
+
+    background:#0f172a;
+    border:1px solid rgba(255,255,255,.18);
+    box-shadow:0 16px 32px rgba(0,0,0,.45);
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    cursor:pointer;
+    user-select:none;
+    padding:0;
+  ">
+    <img src="/history/ai-bubble-rounded-badge.png"
+        alt="AI 챗봇 (궁금한점을 물어보세요)"
+        style="
+          width:32px;
+          height:32px;
+          display:block;
+        "/>
+  </div>
+
+
+  <div id="chatPanel" style="
+    position:absolute;
+    right:16px;
+    bottom:180px;
+    width:320px;
+    max-width:80vw;
+    max-height:50vh;
+    display:none;
+    flex-direction:column;
+    background:rgba(17,24,39,.95);
+    border:1px solid rgba(255,255,255,.15);
+    border-radius:12px;
+    box-shadow:0 20px 40px rgba(0,0,0,.6);
+    backdrop-filter: blur(8px);
+    color:#fff;
+    font:13px/1.4 system-ui,'Noto Sans KR';
+    z-index:100003;
+  ">
+    <div style="padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; align-items:center; justify-content:space-between;">
+      <div style="font-size:13px; font-weight:600;">AI 챗봇 (궁금한점을 물어봐요)</div>
+      <button id="chatClose" style="background:transparent;border:0;color:#fff;font-size:14px;opacity:.6;cursor:pointer;">✕</button>
+    </div>
+
+    <div id="chatMessages" style="flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px;"></div>
+
+    <div style="border-top:1px solid rgba(255,255,255,.08); padding:8px 10px; display:flex; gap:6px;">
+      <input id="chatInput" type="text" placeholder="무엇이 궁금해요?" style="
+        flex:1;
+        background:#1f2937;
+        border:1px solid rgba(255,255,255,.2);
+        color:#fff;
+        font-size:13px;
+        line-height:1.4;
+        border-radius:8px;
+        padding:8px 10px;
+        outline:none;
+      "/>
+      <button id="chatSend" style="
+        background:#4f46e5;
+        border:0;
+        font-size:13px;
+        font-weight:600;
+        color:#fff;
+        border-radius:8px;
+        padding:8px 10px;
+        cursor:pointer;
+        white-space:nowrap;
+      ">보내기</button>
+    </div>
+  </div>
+
+<script>
+/** ===== 기본값 ===== */
+const INIT_CENTER = { lat: 37.42433704094878, lng: 126.97975155175968 };
+const INIT_LEVEL  = 12;
+
+/* 카카오↔OL 줌 기본 보정 */
+const Z_OFFSET = 1;
+
+/* 카카오가 너무 멀리 축소되면 역사지도를 페이드 아웃 */
+const HIDE_START_LEVEL = 12;
+const HIDE_END_LEVEL   = 13;
+
+/* 레벨별 추가 확대(오버줌) */
+const OVERSTEP_BY_LEVEL = {1:1, 2:0.01, 3:0.01, 4:0.01};
+
+/* 기본 스케일(배수) — 사용자 보정값 */
+let SCALE = 75.8;
+
+/* 연도별 WMTS 설정 */
+const YEAR_CONFIG = {
+  "1919": {
+    title: "HGIS 1919",
+    layer: "history:map1919",
+    extent: [815164.9555917948, 1455946.3608951417, 1220536.614974792, 2075064.925722272]
+  },
+  "1970": {
+    title: "HGIS 1970",
+    layer: "history:map1970",
+    extent: [815164.9555917948, 1455946.3608951417, 1220536.614974792, 2075064.925722272]
+  }
+};
+
+const gridNames = [ 'EPSG:5179:0','EPSG:5179:1','EPSG:5179:2','EPSG:5179:3','EPSG:5179:4','EPSG:5179:5','EPSG:5179:6','EPSG:5179:7','EPSG:5179:8','EPSG:5179:9','EPSG:5179:10','EPSG:5179:11','EPSG:5179:12' ];
+const resolutions = [ 15636.779110998164, 7818.389555499082, 3909.194777749541, 1954.5973888747706, 977.2986944373853, 488.64934721869264, 244.32467360934632, 122.16233680467316, 61.08116840233658, 30.54058420116829, 15.270292100584145, 7.6351460502920725, 3.8175730251460362 ];
+const extent5179 = [ -196258.92353469727, 1132702.6936850615, 2439704.8100087596, 2976231.299481734 ];
+const HIST_API = "https://hgis.history.go.kr/openapi/get.do?apiKey=9fc2b3db-4b2b-4058-88f8-2c5052ca9753";
+
+/* ====== 연대표 데이터 (영조 → 6공화국) ====== */
+const NOW_YEAR = new Date().getFullYear();
+const PERIODS = [
+  { label:'영조', start:1724, end:1776, color:'#60a5fa' },
+  { label:'정조', start:1776, end:1800, color:'#3b82f6' },
+  { label:'순조', start:1800, end:1834, color:'#8b5cf6' },
+  { label:'헌종', start:1834, end:1849, color:'#a78bfa' },
+  { label:'철종', start:1849, end:1863, color:'#22c55e' },
+  { label:'고종', start:1863, end:1907, color:'#16a34a' },
+  { label:'순종', start:1907, end:1910, color:'#84cc16' },
+  { label:'일제강점기', start:1910, end:1945, color:'#f59e0b' },
+  { label:'미군정', start:1945, end:1948, color:'#f97316' },
+  { label:'제1공화국', start:1948, end:1960, color:'#ef4444' },
+  { label:'제2공화국', start:1960, end:1961, color:'#f87171' },
+  { label:'제3공화국', start:1963, end:1972, color:'#fb7185' },
+  { label:'제4공화국', start:1972, end:1981, color:'#ec4899' },
+  { label:'제5공화국', start:1981, end:1988, color:'#d946ef' },
+  { label:'제6공화국', start:1988, end:NOW_YEAR, color:'#a855f7' }
+];
+const TL_START = 1724;
+const TL_END   = NOW_YEAR;
+const TL_SPAN  = TL_END - TL_START;
+
+</script>
+
+<script>
+// ===== AI 챗봇 위젯 =====
+const chatFab       = document.getElementById('chatFab');
+const chatPanel     = document.getElementById('chatPanel');
+const chatClose     = document.getElementById('chatClose');
+const chatMessages  = document.getElementById('chatMessages');
+const chatInput     = document.getElementById('chatInput');
+const chatSend      = document.getElementById('chatSend');
+const API_BASE = "https://rag.magiclab.kr"; // ← FastAPI가 떠 있는 쪽
+let poiMarkers = [];            // 마커 객체 모음 (지울 때 사용)
+let markerById = {};            // poiId -> kakao.maps.Marker
+let poiDataById = {};           // poiId -> { title, addr, lat, lng, tel, kind }
+let activeInfoWindow = null;    // 현재 열린 인포윈도우 하나
+let activePoiId = null;         // 현재 선택된 poiId
+let poiIdCounter = 0;           // 고유 ID 발급기
+
+// 열고 닫기
+chatFab.addEventListener('click', () => {
+  chatPanel.style.display = (chatPanel.style.display === 'flex') ? 'none' : 'flex';
+});
+chatClose.addEventListener('click', () => {
+  chatPanel.style.display = 'none';
+});
+
+// helper: 메시지를 UI에 추가
+function pushChatBubble(sender, text){
+  const bubble = document.createElement('div');
+  bubble.style.maxWidth = '85%';
+  bubble.style.borderRadius = '10px';
+  bubble.style.padding = '8px 10px';
+  bubble.style.whiteSpace = 'pre-wrap';
+  bubble.style.wordBreak = 'break-word';
+  bubble.style.fontSize = '13px';
+  bubble.style.lineHeight = '1.4';
+
+  if(sender === 'user'){
+    bubble.style.alignSelf = 'flex-end';
+    bubble.style.background = '#4f46e5';
+    bubble.style.color = '#fff';
+  } else {
+    bubble.style.alignSelf = 'flex-start';
+    bubble.style.background = '#374151';
+    bubble.style.color = '#fff';
+  }
+
+  bubble.textContent = text;
+  chatMessages.appendChild(bubble);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// 현재 선택된 장소 컨텍스트(사이드패널의 데이터)를 챗봇에 같이 넘기고 싶다면
+function getCurrentContextForAI(){
+  // sidePanel에 표시된 정보 그대로 읽어와서 context로 줄 수 있음
+  return {
+    title: pTitle.textContent,
+    year_place: pYearPlace.textContent,
+    place: pPlace.textContent,
+    addr: pAddr.textContent,
+    name: pName.textContent,
+    exp: pExp.textContent,
+    ref: pRef.textContent
+  };
+}
+
+// 서버에 질문 보내기
+async function sendChat(){
+  const userText = chatInput.value.trim();
+  if(!userText) return;
+
+  // UI에 사용자 말풍선 찍기
+  pushChatBubble('user', userText);
+  chatInput.value = '';
+
+  // 컨텍스트 가져오기 (없어도 되지만 있으면 훨씬 똑똑해짐)
+  const context = getCurrentContextForAI();
+
+  // 서버로 fetch
+  try {
+    const resp = await fetch(`${API_BASE}/api/chatbot`, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        question: userText,
+        context: getCurrentContextForAI()  // 사이드패널에서 긁어온 정보
+      })
+    });
+
+    const data = await resp.json();
+
+    // data.answer 라고 가정
+    pushChatBubble('bot', data.answer || '(응답 없음)');
+  } catch(err){
+    console.error(err);
+    pushChatBubble('bot', '에러가 발생했어요 😥');
+  }
+}
+
+chatSend.addEventListener('click', sendChat);
+chatInput.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    sendChat();
+  }
+});
+
+function clearPoiMarkers() {
+  poiMarkers.forEach(m => m.setMap(null));
+  poiMarkers = [];
+
+  markerById   = {};
+  poiDataById  = {};
+
+  if (activeInfoWindow) {
+    activeInfoWindow.close();
+    activeInfoWindow = null;
+  }
+  activePoiId = null;
+
+  // 패널 쪽 하이라이트도 초기화해도 됨
+  const wrap = document.getElementById('nearbyList');
+  const lists = [nearAtList, nearHoList, nearFdList].filter(Boolean);
+  lists.forEach(ul => {
+    ul.querySelectorAll('.near-item.active').forEach(el => el.classList.remove('active'));
+  });
+}
+
+
+
+window.addEventListener('DOMContentLoaded', () => {
+  kakao.maps.load(() => {
+
+    /* 1) 카카오맵 */
+    const kmap = new kakao.maps.Map(document.getElementById('kmap'), {
+      center: new kakao.maps.LatLng(INIT_CENTER.lat, INIT_CENTER.lng),
+      level: INIT_LEVEL
+    });
+
+    /* 2) OpenLayers */
+    proj4.defs("EPSG:5179", "+proj=tmerc +lat_0=38 +lon_0=127.5 +k=0.9996 +x_0=1000000 +y_0=2000000 +ellps=GRS80 +units=m +no_defs");
+    const initCenter5179 = ol.proj.transform([INIT_CENTER.lng, INIT_CENTER.lat], "EPSG:4326", "EPSG:5179");
+    const olView = new ol.View({
+      extent: extent5179,
+      projection: "EPSG:5179",
+      center: initCenter5179,
+      zoom: 13,
+      minZoom: 0,
+      maxZoom: 20,
+      constrainResolution: false
+    });
+    const olMap = new ol.Map({
+      target: 'ol-layer',
+      layers: [],
+      view: olView,
+      controls: new ol.Collection(),
+      interactions: new ol.Collection(),
+      loadTilesWhileInteracting: true
+    });
+    const olHost     = document.getElementById('ol-layer');
+    const olViewport = olMap.getViewport();
+    olViewport.style.background = 'transparent';
+    olViewport.style.pointerEvents = 'none';
+    olViewport.style.zIndex = '99999';
+    
+    /* === 연도별 레이어 생성/전환 === */
+    function createHistLayer(cfg){
+      const tileGrid = new ol.tilegrid.WMTS({
+        tileSize: [256, 256],
+        extent: cfg.extent,
+        origin: [-200000.0, 4000000.0],
+        resolutions, matrixIds: gridNames
+      });
+      const layer = new ol.layer.Tile({
+        title: cfg.title,
+        extent: cfg.extent,
+        source: new ol.source.WMTS({
+          url: HIST_API,
+          layer: cfg.layer,
+          matrixSet: "EPSG:5179",
+          format: "image/png",
+          projection: "EPSG:5179",
+          tileGrid,
+          wrapX: false,
+          serverType: "geoserver"
+        }),
+        visible: true
+      });
+      return layer;
+    }
+    let histLayer = null;
+    function setYear(year){
+      const cfg = YEAR_CONFIG[year];
+      if (!cfg) return;
+      if (histLayer){ olMap.removeLayer(histLayer); histLayer = null; }
+      histLayer = createHistLayer(cfg);
+      olMap.getLayers().push(histLayer);
+      applyZoomOutFade(kmap.getLevel());
+      olMap.updateSize(); olMap.renderSync();
+      // 버튼 상태 동기화
+      document.getElementById('btn1919').classList.toggle('active', year==='1919');
+      document.getElementById('btn1970').classList.toggle('active', year==='1970');
+    }
+    setYear('1919'); // 기본
+
+    /* 3) 동기화 + 오버줌 + 줌아웃-페이드 */
+    function kakaoLevelToOlZoom(level){
+      const table = {1:12,2:11,3:10,4:9,5:8,6:7,7:6,8:5,9:4,10:3,11:2,12:1,13:1,14:0};
+      level = Math.max(1, Math.min(14, level|0));
+      return Math.max(0, Math.min(12, table[level] + Z_OFFSET));
+    }
+    function applyZoomOutFade(level){
+      const opCtl = document.getElementById('opacity');
+      if (level >= HIDE_END_LEVEL) { olHost.style.opacity = '0'; return; }
+      if (level <= HIDE_START_LEVEL) { olHost.style.opacity = String(opCtl.value); return; }
+      const t = (level - HIDE_START_LEVEL) / (HIDE_END_LEVEL - HIDE_START_LEVEL);
+      const base = parseFloat(opCtl.value);
+      olHost.style.opacity = String((base * (1 - t)).toFixed(3));
+    }
+    let rafToken = null;
+    function syncOLFromKakao(){
+      if (rafToken) return;
+      rafToken = requestAnimationFrame(() => {
+        rafToken = null;
+        const c  = kmap.getCenter();
+        const lv = kmap.getLevel();
+        applyZoomOutFade(lv);
+        if (lv >= HIDE_END_LEVEL) return;
+
+        const c5179 = ol.proj.transform([c.getLng(), c.getLat()], "EPSG:4326", "EPSG:5179");
+        olView.setCenter(c5179);
+
+        const baseZ   = kakaoLevelToOlZoom(lv);
+        const baseRes = olView.getResolutionForZoom(baseZ);
+        const extra   = OVERSTEP_BY_LEVEL[lv] || 0;
+        const adjRes  = (baseRes / Math.pow(2, extra)) / SCALE;
+        olView.setResolution(adjRes);
+      });
+    }
+    kakao.maps.event.addListener(kmap, 'center_changed', syncOLFromKakao);
+    kakao.maps.event.addListener(kmap, 'zoom_changed',   () => {
+      olHost.style.visibility = 'hidden';
+      syncOLFromKakao();
+      olMap.updateSize();
+      olMap.renderSync();
+      olHost.style.visibility = 'visible';
+    });
+    kakao.maps.event.addListener(kmap, 'idle',           syncOLFromKakao);
+    syncOLFromKakao();
+    window.addEventListener('resize', () => { olMap.updateSize(); });
+
+    /* 4) 드래그-팔로우 */
+    const proj = kmap.getProjection();
+    const ptFromLatLng = (ll) => proj.containerPointFromCoords(ll);
+    let follow = { active:false, baseCenter:null, baseTransform:'' };
+    kakao.maps.event.addListener(kmap, 'dragstart', () => {
+      follow.active        = true;
+      follow.baseCenter    = kmap.getCenter();
+      follow.baseTransform = olViewport.style.transform || 'none';
+      olViewport.style.willChange = 'transform';
+    });
+    kakao.maps.event.addListener(kmap, 'drag', () => {
+      if (!follow.active) return;
+      const p0 = ptFromLatLng(follow.baseCenter);
+      const p1 = ptFromLatLng(kmap.getCenter());
+      const dx = p0.x - p1.x;
+      const dy = p0.y - p1.y;
+      const base = (follow.baseTransform && follow.baseTransform !== 'none') ? follow.baseTransform : '';
+      olViewport.style.transform = `${base} translate(${dx}px, ${dy}px)`;
+    });
+    kakao.maps.event.addListener(kmap, 'dragend', () => {
+      follow.active = false;
+      olViewport.style.transform = follow.baseTransform || 'none';
+      olViewport.style.willChange = '';
+      syncOLFromKakao();
+      olMap.updateSize();
+      olMap.renderSync();
+    });
+
+    /* 5) 토글/불투명 + 연도 전환 UI */
+    const btnToggle = document.getElementById('btnToggle');
+    const opacity   = document.getElementById('opacity');
+    const btn1919   = document.getElementById('btn1919');
+    const btn1970   = document.getElementById('btn1970');
+
+    function showHistorical(){
+      document.getElementById('ol-layer').style.display = 'block';
+      syncOLFromKakao();
+      olMap.updateSize();
+      olMap.renderSync();
+    }
+    function hideHistorical(){
+      document.getElementById('ol-layer').style.display = 'none';
+    }
+    btnToggle.addEventListener('click', () => {
+      const on = btnToggle.getAttribute('data-on') === '1';
+      if (on) {
+        btnToggle.setAttribute('data-on','0');
+        btnToggle.textContent = '과거지도 켜기';
+        hideHistorical();
+      } else {
+        btnToggle.setAttribute('data-on','1');
+        btnToggle.textContent = '과거지도 끄기';
+        showHistorical();
+      }
+    });
+    opacity.addEventListener('input', () => applyZoomOutFade(kmap.getLevel()));
+    function activateYearButton(activeBtn){
+      [btn1919, btn1970].forEach(b => b.classList.toggle('active', b === activeBtn));
+    }
+    btn1919.addEventListener('click', () => { activateYearButton(btn1919); setYear('1919'); });
+    btn1970.addEventListener('click', () => { activateYearButton(btn1970); setYear('1970'); });
+
+    /* 6) === 데이터 로드용 전역 === */
+    let HIST_POINTS = [];           // hist_points.json 내용
+    const personAddrMap = {};       // { [name]: adr }  ← history_data.csv에서 만든 매핑
+
+    const geocoder = new kakao.maps.services.Geocoder();
+    const geocodeCache = new Map(); // addr -> LatLng|null
+    let markers = [];
+    let geocodeQueue = [];
+    let geocodeTimer = null;
+
+    /* 6-1) hist_points.json 불러오기 */
+    async function loadHistPoints() {
+      try {
+        const res = await fetch('hist_points.json', {cache: 'no-store'});
+        HIST_POINTS = await res.json();
+        console.log('[HIST] hist_points loaded', HIST_POINTS.length);
+      } catch (e) {
+        console.warn('[HIST] hist_points.json 로드 실패:', e);
+        HIST_POINTS = [];
+      }
+    }
+
+    /* 6-2) history_data.csv 불러와서 name -> adr 매핑 만들기
+       CSV 예: name,adr
+              홍길동,서울 어디어디...
+    */
+    async function loadPersonAddrCSV() {
+      try {
+        const res = await fetch('history_data.csv', {cache:'no-store'});
+        const text = await res.text();
+
+        // 간단 파서 (첫 줄 헤더라고 가정)
+        // 줄 단위 split
+        const lines = text
+          .split(/\r?\n/)
+          .map(l => l.trim())
+          .filter(l => l.length > 0);
+
+        if (lines.length < 2) {
+          console.warn('[HIST] CSV 라인 수가 부족합니다');
+          return;
+        }
+
+        // header 파싱
+        const header = lines[0].split(',');
+        const nameIdx = header.findIndex(h => h.trim().toLowerCase() === 'name');
+        const adrIdx  = header.findIndex(h => h.trim().toLowerCase() === 'adr');
+
+        if (nameIdx === -1 || adrIdx === -1) {
+          console.warn('[HIST] CSV에 name/adr 헤더가 없습니다');
+        }
+
+        // 본문 파싱
+        for (let i = 1; i < lines.length; i++){
+          const cols = lines[i].split(',');
+          const nm  = (cols[nameIdx] || '').trim();
+          const adr = (cols[adrIdx]  || '').trim();
+          if (nm) {
+            // 같은 name이 여러번 있을 수 있지만, 일단 마지막 것을 우선
+            personAddrMap[nm] = adr;
+          }
+        }
+
+        console.log('[HIST] CSV loaded. personAddrMap size:', Object.keys(personAddrMap).length);
+      } catch (e) {
+        console.warn('[HIST] history_data.csv 로드 실패:', e);
+      }
+    }
+
+    // ===== 이미지 실제 크기 읽어서 비율 유지한 마커 =====
+    // function addMarker(latlng, data){
+    //   const imageSrc = data.title ? `/history/${data.title}.jpg` : '/history/기본이미지.jpg';
+
+    //   getImageSize(imageSrc).then(imageSize => {
+    //     const maxWidth  = 200;
+    //     const maxHeight = 200;
+    //     const ratio     = Math.min(maxWidth / imageSize.width, maxHeight / imageSize.height);
+
+    //     const imageWidth  = imageSize.width  * ratio;
+    //     const imageHeight = imageSize.height * ratio;
+
+    //     const imageOption = { offset: new kakao.maps.Point(imageWidth / 2, imageHeight) };
+    //     const markerImage = new kakao.maps.MarkerImage(
+    //       imageSrc,
+    //       new kakao.maps.Size(imageWidth, imageHeight),
+    //       imageOption
+    //     );
+
+    //     const marker = new kakao.maps.Marker({
+    //       position: latlng,
+    //       image: markerImage
+    //     });
+
+    //     marker.setMap(kmap);
+
+    //     kakao.maps.event.addListener(marker, 'click', () => {
+    //       openInfoPanel(data, imageSrc);
+    //     });
+
+    //     markers.push(marker);
+    //   });
+    // }
+
+    function addMarker(latlng, data){
+      const imageSrc = data.title ? `/history/${data.title}.jpg` : '/history/기본이미지.jpg';
+
+      getImageSize(imageSrc).then(imageSize => {
+        const maxWidth  = 200;
+        const maxHeight = 200;
+        const ratio     = Math.min(maxWidth / imageSize.width, maxHeight / imageSize.height);
+
+        const imageWidth  = imageSize.width  * ratio;
+        const imageHeight = imageSize.height * ratio;
+
+        const imageOption = { offset: new kakao.maps.Point(imageWidth / 2, imageHeight) };
+        const markerImage = new kakao.maps.MarkerImage(
+          imageSrc,
+          new kakao.maps.Size(imageWidth, imageHeight),
+          imageOption
+        );
+
+        const marker = new kakao.maps.Marker({
+          position: latlng,
+          image: markerImage
+        });
+
+        marker.setMap(kmap);
+
+        kakao.maps.event.addListener(marker, 'click', () => {
+          // ★ latlng 같이 넘긴다
+          openInfoPanel(data, imageSrc, latlng);
+        });
+
+        markers.push(marker);
+      });
+    }
+
+    // 지오코딩 큐 (남겨둠)
+    function geocodeAddr(addr, cb){
+      if (geocodeCache.has(addr)) { cb(geocodeCache.get(addr)); return; }
+      geocodeQueue.push({addr, cb});
+      if (!geocodeTimer){
+        geocodeTimer = setInterval(() => {
+          const job = geocodeQueue.shift();
+          if (!job){ clearInterval(geocodeTimer); geocodeTimer = null; return; }
+          geocoder.addressSearch(job.addr, (result, status) => {
+            if (status === kakao.maps.services.Status.OK && result[0]){
+              const latlng = new kakao.maps.LatLng(result[0].y, result[0].x);
+              geocodeCache.set(job.addr, latlng);
+              job.cb(latlng);
+            }else{
+              console.warn('[HIST] 지오코딩 실패:', job.addr, status);
+              geocodeCache.set(job.addr, null);
+              job.cb(null);
+            }
+          });
+        }, 180);
+      }
+    }
+
+    // async function showPinsForYear(year) {
+    //   clearMarkers();  // 기존 마커 제거
+
+    //   // 연도 필터
+    //   const list = HIST_POINTS.filter(d => {
+    //     // 주소 없으면 스킵
+    //     if (!d.ADDR && !d.addr) return false;
+
+    //     // 우선 y1/y2 있으면 그거 사용
+    //     let y1 = (d.y1 ?? d.y2);
+    //     let y2 = (d.y2 ?? d.y1);
+
+    //     // 없으면 DATA(문자열)에서 숫자 뽑기
+    //     if (y1 == null && y2 == null) {
+    //       const parsed = parseInt(d.DATA || d.data || '', 10);
+    //       if (!isNaN(parsed)) {
+    //         y1 = parsed;
+    //         y2 = parsed;
+    //       }
+    //     }
+    //     if (y1 == null && y2 == null) return false;
+
+    //     const minY = Math.min(y1, y2);
+    //     const maxY = Math.max(y1, y2);
+    //     return (minY <= year && year <= maxY);
+    //   });
+
+    //   const bounds = new kakao.maps.LatLngBounds();
+    //   let anyMarker = false;
+
+    //   await Promise.all(list.map(async (d) => {
+    //     const addrText = d.ADDR || d.addr;
+    //     const latlng = await getLatLng(addrText);
+    //     if (latlng) {
+    //       addMarker(latlng, d);
+    //       bounds.extend(latlng);
+    //       anyMarker = true;
+    //     }
+    //   }));
+
+    //   if (anyMarker) {
+    //     kmap.setBounds(bounds);
+    //   }
+
+    //   console.log(`[HIST] ${year}년 표시 건수: ${list.length}`);
+    // }
+
+    // 마커 초기화
+    
+    async function showPinsForYear(year) {
+      clearMarkers();  // 기존 마커 제거
+
+      // 1) 해당 연도에 해당하는 데이터만
+      const list = HIST_POINTS.filter(d => {
+        if (!d.addr) return false;
+        if (d.y1 == null && d.y2 == null) return false;
+        const y1 = (d.y1 ?? d.y2);
+        const y2 = (d.y2 ?? d.y1);
+        return y1 <= year && year <= y2;
+      });
+
+      // 2) 모든 데이터에 대해 지오코딩 먼저
+      //    { data: d, latlng } 형태 배열 만들기
+      const withCoords = [];
+      await Promise.all(list.map(async (d) => {
+        const latlng = await getLatLng(d.addr);
+        if (latlng) {
+          withCoords.push({ data: d, latlng });
+        }
+      }));
+
+      // 3) 좌표별로 그룹핑
+      //    key는 "lat,lng" 문자열로(소수점 줄여서 같은 곳 취급)
+      const groups = new Map();
+      withCoords.forEach(item => {
+        const lat = item.latlng.getLat().toFixed(6);
+        const lng = item.latlng.getLng().toFixed(6);
+        const key = lat + ',' + lng;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(item);
+      });
+
+      // 4) 각 그룹을 퍼뜨리면서 마커 생성
+      const bounds = new kakao.maps.LatLngBounds();
+
+      groups.forEach((arr) => {
+        const total = arr.length;
+
+        arr.forEach((item, idx) => {
+          const baseLatLng = item.latlng;
+          const spreadPos  = spreadLatLng(baseLatLng, idx, total); // <- 핵심!
+          addMarker(spreadPos, item.data);
+          bounds.extend(spreadPos);
+        });
+      });
+
+      // 5) bounds가 비어있지 않으면 지도 맞추기
+      if (!bounds.isEmpty && !bounds.isEmpty()) {
+        kmap.setBounds(bounds);
+      }
+
+      console.log(`[HIST] ${year}년 표시 건수(좌표 성공): ${withCoords.length}`);
+    }
+
+    function clearMarkers() {
+      markers.forEach(marker => {
+        marker.setMap(null);
+      });
+      markers = [];
+    }
+
+    // 유틸: 이미지 크기
+    function getImageSize(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          resolve({ width: img.width, height: img.height });
+        };
+        img.onerror = () => {
+          console.warn('[HIST] 이미지 로딩 실패:', src);
+          resolve({ width: 90, height: 120 }); // fallback
+        };
+        img.src = src;
+      });
+    }
+
+    // 유틸: 주소 -> 좌표
+    function getLatLng(addr) {
+      return new Promise((resolve) => {
+        geocoder.addressSearch(addr, (result, status) => {
+          if (status === kakao.maps.services.Status.OK && result[0]) {
+            const latlng = new kakao.maps.LatLng(result[0].y, result[0].x);
+            resolve(latlng);
+          } else {
+            console.warn('[HIST] 지오코딩 실패:', addr);
+            resolve(null);
+          }
+        });
+      });
+    }
+    
+    function escapeHtml(str){
+      return (str ?? "").toString()
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#39;");
+    }
+
+    function renderNearList(targetUL, items, kind){
+      if(!targetUL) return;
+
+      if(!Array.isArray(items) || items.length === 0){
+        targetUL.innerHTML = '<li class="near-li" style="opacity:.6;">주변 정보 없음</li>';
+        return;
+      }
+
+      // 상위 5개만
+      const slice = items.slice(0,5);
+
+      targetUL.innerHTML = slice.map(it => {
+        // poiId 없으면 부여 (리스트와 마커가 같은 객체를 공유하니, 이후 addPoiMarkers가 이 poiId를 재사용)
+        if(!it.poiId){
+          it.poiId = 'poi_' + (poiIdCounter++);
+        }
+        it.kind = kind;
+        poiDataById[it.poiId] = it;
+
+        const t = escapeHtml(it.title || '');
+        const a = escapeHtml(it.addr  || '');
+
+        return `
+          <button class="near-item"
+                  data-poiid="${it.poiId}"
+                  style="
+                    display:block;
+                    text-align:left;
+                    width:100%;
+                    background:transparent;
+                    border:0;
+                    padding:6px 0;
+                    color:#fff;
+                    cursor:pointer;
+                  ">
+            <div class="near-title">${t}</div>
+            <div class="near-addr">${a}</div>
+          </button>
+        `;
+      }).join('');
+
+      // 위임 클릭: 버튼 누르면 focusPoi
+      targetUL.addEventListener('click', (e) => {
+        const btn = e.target.closest('.near-item');
+        if(!btn) return;
+        const poiId = btn.dataset.poiid;
+        if(!poiId) return;
+        focusPoi(poiId, {centerMap:true, openInfo:true, highlightList:true});
+      }, { once:false });
+    }
+
+    async function loadNearbyTourPreview(latlngHint, addrText){
+      // 패널 제일 아래 섹션 보이게
+      pAroundRow.style.display = 'block';
+
+      // 로딩 표시
+      nearAtList.innerHTML = '<li class="near-li"><div class="near-title">불러오는 중...</div></li>';
+      nearHoList.innerHTML = '<li class="near-li"><div class="near-title">불러오는 중...</div></li>';
+      nearFdList.innerHTML = '<li class="near-li"><div class="near-title">불러오는 중...</div></li>';
+
+      let baseLatLng = latlngHint;
+
+      // 마커 클릭 시 좌표(latlngHint) 안 넘어온 경우 → 주소로 지오코딩해서 기준점 확보
+      if(!baseLatLng){
+        if(!addrText){
+          nearAtList.innerHTML = '<li class="near-li" style="opacity:.6;">주변 정보 없음</li>';
+          nearHoList.innerHTML = '<li class="near-li" style="opacity:.6;">주변 정보 없음</li>';
+          nearFdList.innerHTML = '<li class="near-li" style="opacity:.6;">주변 정보 없음</li>';
+          return;
+        }
+        baseLatLng = await getLatLng(addrText);
+      }
+
+      if(!baseLatLng){
+        nearAtList.innerHTML = '<li class="near-li" style="opacity:.6;">주변 정보 없음</li>';
+        nearHoList.innerHTML = '<li class="near-li" style="opacity:.6;">주변 정보 없음</li>';
+        nearFdList.innerHTML = '<li class="near-li" style="opacity:.6;">주변 정보 없음</li>';
+        return;
+      }
+
+      const lat = baseLatLng.getLat();
+      const lng = baseLatLng.getLng();
+
+      try{
+        // contentTypeId: 12 관광지 / 32 숙박 / 39 음식점
+        const [attractions, hotels, foods] = await Promise.all([
+          tourNearby(lat, lng, { radius: 2000, type: "12", max: 15 }),
+          tourNearby(lat, lng, { radius: 2000, type: "32", max: 15 }),
+          tourNearby(lat, lng, { radius: 2000, type: "39", max: 15 }),
+        ]);
+
+
+        // 지도 마커 갱신
+        clearPoiMarkers();
+
+        addPoiMarkers(attractions, 'tour');
+        addPoiMarkers(hotels,      'hotel');
+        addPoiMarkers(foods,       'food');
+        // 패널 리스트 업데이트
+        renderNearList(nearAtList, attractions, 'tour');
+        renderNearList(nearHoList, hotels,      'hotel');
+        renderNearList(nearFdList, foods,       'food');
+
+      }catch(err){
+        console.error('[TourAPI] fetch fail', err);
+        renderNearList(nearAtList, [], 'tour');
+        renderNearList(nearHoList, [], 'hotel');
+        renderNearList(nearFdList, [], 'food');
+      }
+    }
+
+        // 주변 관광/숙소/음식 정보 가져오기
+    // type: "12"(관광), "32"(숙소), "39"(음식)  <- TourAPI contentTypeId
+    async function tourNearby(lat, lng, { radius = 2000, type = "12", max = 5 } = {}){
+      const url = API_BASE + "/api/tour/nearby?" + new URLSearchParams({
+        lat,
+        lng,
+        radius,
+        type,
+        max
+      });
+      const r = await fetch(url);
+      const j = await r.json();
+      if(!j.ok){
+        console.warn('[TourAPI] error', j);
+        return [];
+      }
+      return j.items || [];
+    }
+
+    // baseLatLng 주변으로 index번째 마커를 원형으로 퍼뜨려서 돌려준다
+    // index: 0,1,2,... / total: 그 주소(또는 좌표)에 몇 개인지
+    function spreadLatLng(baseLatLng, index, total){
+      if (total === 1) return baseLatLng;
+
+      // 원의 반지름 (미터 단위). 개수가 많을수록 조금 더 넓게
+      const radiusM = Math.min(30, 8 + total * 2); // 적당히 8m ~ 30m 정도
+
+      // 각도: 전체를 균등분배
+      const angleRad = (2 * Math.PI * index) / total;
+
+      // meter -> 위/경도 보정
+      const dx = radiusM * Math.cos(angleRad); // 동서 방향 (m)
+      const dy = radiusM * Math.sin(angleRad); // 남북 방향 (m)
+
+      const baseLat = baseLatLng.getLat();
+      const baseLng = baseLatLng.getLng();
+
+      // 위도 1m ≈ 1 / 111,320도
+      const newLat = baseLat + (dy / 111320);
+
+      // 경도 1m ≈ 1 / (111,320 * cos(lat))도
+      const metersPerDegLng = 111320 * Math.cos(baseLat * Math.PI / 180);
+      const newLng = baseLng + (dx / metersPerDegLng);
+
+      return new kakao.maps.LatLng(newLat, newLng);
+    }
+
+    
+    // ===== 사이드 패널 =====
+    const sidePanel   = document.getElementById('sidePanel');
+    const panelClose  = document.getElementById('panelClose');
+
+    const pImg        = document.getElementById('pImg');
+    const pTitle      = document.getElementById('pTitle');
+    const pYearPlace  = document.getElementById('pYearPlace');
+    const pPlace      = document.getElementById('pPlace');
+    const pAddr       = document.getElementById('pAddr');
+    const pName       = document.getElementById('pName');
+    const pExp        = document.getElementById('pExp');
+    const pRef        = document.getElementById('pRef');
+
+    // ★ 새로 추가
+    const pAroundRow  = document.getElementById('pAroundRow');
+    const nearAtList  = document.getElementById('nearAtList');
+    const nearHoList  = document.getElementById('nearHoList');
+    const nearFdList  = document.getElementById('nearFdList');
+
+
+    // y1~y2 범위를 "1900–1912"처럼 표시, 없으면 DATA
+    function formatYearRange(d){
+      const a = d.y1;
+      const b = d.y2;
+      if (a && b && a !== b) return `${a}–${b}`;
+      if (a) return String(a);
+      if (b) return String(b);
+      return d.DATA || d.data || '';
+    }
+
+    // function openInfoPanel(data, imageSrc){
+    //   // 이미지
+    //   pImg.src = imageSrc || '';
+    //   pImg.alt = data.TITLE_NM || data.title || '';
+
+    //   // 타이틀(드라마명)
+    //   const titleText = data.TITLE_NM || data.title || '(제목 없음)';
+    //   pTitle.textContent = titleText;
+
+    //   // 상단 서브라인 = [연도] · [장소명]
+    //   const yearText  = formatYearRange(data);
+    //   const placeText = data.PLACE_NM || data.place || '';
+    //   pYearPlace.textContent = [yearText, placeText].filter(Boolean).join(' · ');
+
+    //   // 인물 이름
+    //   const whoName = data.NAME || data.name || '';
+
+    //   // 기본 ADDR (hist_points.json 쪽 주소)
+    //   const primaryAddr = data.ADDR || data.addr || '';
+
+    //   // CSV에서 name 일치하는 adr
+    //   const adrFromCSV = personAddrMap[whoName] || '';
+
+    //   pAddr.textContent = primaryAddr || adrFromCSV || '';
+      
+    //   if (adrFromCSV && adrFromCSV !== whoName){
+    //     pName.innerHTML = `
+    //     <div>${whoName}</div>
+    //     <div style="color:#9ca3af;font-size:12px;line-height:1.4;margin-top:4px;">
+    //       관련 상세 링크:
+    //       <a href="${adrFromCSV}" target="_blank" rel="noopener noreferrer"
+    //         style="color:#60a5fa; text-decoration:underline;">
+    //         ${adrFromCSV}
+    //       </a>
+    //     </div>
+    //     `;
+    //   } else {
+    //     pName.textContent = whoName || adrFromCSV || '';
+    //   }
+
+    //   // 나머지 필드
+    //   pPlace.textContent = placeText;
+    //   // pName.textContent  = whoName;
+    //   pExp.textContent   = data.EXP || data.exp || '';
+    //   pRef.textContent   = data.REF || data.ref || '';
+
+    //   // 패널 열기
+    //   sidePanel.classList.add('open');
+    // }
+
+
+    async function openInfoPanel(data, imageSrc, latlngHint){
+      // 이미지
+      pImg.src = imageSrc || '';
+      pImg.alt = data.TITLE_NM || data.title || '';
+
+      // 타이틀(작품/장소명 등)
+      const titleText = data.TITLE_NM || data.title || '(제목 없음)';
+      pTitle.textContent = titleText;
+
+      // 상단 서브라인 = [연도] · [장소명]
+      const yearText  = formatYearRange(data);
+      const placeText = data.PLACE_NM || data.place || '';
+      pYearPlace.textContent = [yearText, placeText].filter(Boolean).join(' · ');
+
+      // 인물 이름
+      const whoName = data.NAME || data.name || '';
+
+      // 주소 (hist_points 우선, 없으면 CSV adr)
+      const primaryAddr = data.ADDR || data.addr || '';
+      const adrFromCSV  = personAddrMap[whoName] || '';
+      const finalAddr   = primaryAddr || adrFromCSV || '';
+      pAddr.textContent = finalAddr;
+
+      // 관련 정보 (인물 + 링크)
+      if (adrFromCSV && adrFromCSV !== whoName){
+        pName.innerHTML = `
+          <div>${whoName}</div>
+          <div style="color:#9ca3af;font-size:12px;line-height:1.4;margin-top:4px;">
+            관련 상세 링크:
+            <a href="${adrFromCSV}" target="_blank" rel="noopener noreferrer"
+              style="color:#60a5fa; text-decoration:underline;">
+              ${adrFromCSV}
+            </a>
+          </div>
+        `;
+      } else {
+        pName.textContent = whoName || adrFromCSV || '';
+      }
+
+      // 나머지 필드
+      pPlace.textContent = placeText;
+      pExp.textContent   = data.EXP || data.exp || '';
+      pRef.textContent   = data.REF || data.ref || '';
+
+      // 패널 열기
+      sidePanel.classList.add('open');
+
+      // 주변 관광/숙박/음식 + 지도 POI 마커
+      loadNearbyTourPreview(latlngHint, finalAddr);
+    }
+
+    function addPoiMarkers(list, kind){
+      if (!list || !list.length) return;
+
+      const iconSrcMap = {
+        tour:  '/history/tour.png',
+        hotel: '/history/hotel.png',
+        food:  '/history/food.png'
+      };
+      const iconSrc = iconSrcMap[kind] || iconSrcMap.tour;
+
+      list.forEach(poi => {
+        if (!poi.lat || !poi.lng) return;
+
+        // 고유 ID 없으면 만들어 붙여
+        if (!poi.poiId) {
+          poi.poiId = "poi_" + (poiIdCounter++);
+        }
+        poi.kind = kind;
+        poiDataById[poi.poiId] = poi; // 저장
+
+        const pos = new kakao.maps.LatLng(poi.lat, poi.lng);
+
+        const markerImage = new kakao.maps.MarkerImage(
+          iconSrc,
+          new kakao.maps.Size(64, 64),
+          { offset:new kakao.maps.Point(32, 64) }
+        );
+
+        const marker = new kakao.maps.Marker({
+          position: pos,
+          image: markerImage,
+          clickable: true
+        });
+
+        marker.setMap(kmap);
+        poiMarkers.push(marker);
+        markerById[poi.poiId] = marker;
+
+        kakao.maps.event.addListener(marker, 'click', function () {
+          focusPoi(poi.poiId, {centerMap:true, openInfo:true, highlightList:true});
+        });
+      });
+    }
+
+
+    function renderNearbyPanel(tourList, hotelList, foodList){
+      const wrap = document.getElementById('nearbyList');
+
+      function makeItems(kind, arr){
+        if (!arr || !arr.length) return '';
+
+        return arr.slice(0,5).map(p => {
+          // poiId 주입 (없으면 새로 배정 — 마커랑 동일하게 맞춰야 함)
+          if (!p.poiId) {
+            p.poiId = "poi_" + (poiIdCounter++);
+          }
+          p.kind = kind;
+          poiDataById[p.poiId] = p;
+
+          const safeTitle = p.title || '(이름없음)';
+          const safeAddr  = p.addr  || '';
+
+          return `
+            <button class="near-item"
+                    data-poiid="${p.poiId}"
+                    style="
+                      display:block;
+                      text-align:left;
+                      width:100%;
+                      background:transparent;
+                      border:0;
+                      padding:6px 0;
+                      color:#fff;
+                      cursor:pointer;
+                    ">
+              <div style="font-weight:600;font-size:13px;line-height:1.4;">${safeTitle}</div>
+              <div style="font-size:12px;line-height:1.4;color:#9ca3af;">${safeAddr}</div>
+            </button>
+          `;
+        }).join('');
+      }
+
+      function sectionHtml(label, kind, arr){
+        const itemsHtml = makeItems(kind, arr);
+        if (!itemsHtml) return '';
+        return `
+          <div class="near-cat" style="margin-bottom:10px;">
+            <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px;">${label}</div>
+            ${itemsHtml}
+          </div>
+        `;
+      }
+
+      wrap.innerHTML =
+        sectionHtml('관광지', 'tour',  tourList) +
+        sectionHtml('숙소',   'hotel', hotelList) +
+        sectionHtml('음식',   'food',  foodList);
+
+      if (wrap.innerHTML.trim() !== '') {
+        document.getElementById('nearbyBlock').style.display = 'block';
+      }
+
+      // 리스트 클릭 -> 해당 poi로 포커스
+      wrap.addEventListener('click', (e) => {
+        const btn = e.target.closest('.near-item');
+        if (!btn) return;
+
+        const poiId = btn.dataset.poiid;
+        if (!poiId) return;
+
+        focusPoi(poiId, {centerMap:true, openInfo:true, highlightList:true});
+      }, { once:false });
+    }
+
+    function focusPoi(poiId, opts = {}){
+      const { centerMap=true, openInfo=true, highlightList=true } = opts;
+
+      const poi = poiDataById[poiId];
+      const marker = markerById[poiId];
+      if (!poi || !marker) return;
+
+      const pos = new kakao.maps.LatLng(poi.lat, poi.lng);
+
+      // 1) 지도 이동/줌
+      if (centerMap){
+        kmap.setLevel(4);
+        kmap.setCenter(pos);
+      }
+
+      // 2) 인포윈도우 (기존 열려있던 거 닫고 새로)
+      if (openInfo){
+        if (activeInfoWindow){
+          activeInfoWindow.close();
+        }
+        const iwContent = `
+          <div style="padding:6px 8px;font-size:12px;line-height:1.4;max-width:180px;">
+            <div style="font-weight:600;margin-bottom:2px;">${poi.title || ''}</div>
+            <div style="color:#555;">${poi.addr || ''}</div>
+            ${poi.tel ? `<div style="color:#777;font-size:11px;margin-top:4px;">${poi.tel}</div>` : ''}
+          </div>
+        `;
+
+        activeInfoWindow = new kakao.maps.InfoWindow({
+          content: iwContent
+        });
+        activeInfoWindow.open(kmap, marker);
+      }
+
+      // 3) 좌측 리스트 하이라이트
+      // 3) 좌측 리스트 하이라이트
+      if (highlightList){
+        const containers = [nearAtList, nearHoList, nearFdList].filter(Boolean);
+
+        // 이전 active 제거
+        if (activePoiId && activePoiId !== poiId){
+          containers.forEach(c => {
+            const prevEl = c.querySelector(`.near-item.active`);
+            if (prevEl) prevEl.classList.remove('active');
+          });
+        }
+        activePoiId = poiId;
+
+        // 새 active 추가 + 스크롤
+        let curEl = null;
+        for (const c of containers){
+          const el = c.querySelector(`.near-item[data-poiid="${poiId}"]`);
+          if (el){ curEl = el; break; }
+        }
+        if (curEl){
+          curEl.classList.add('active');
+          const scrollContainer = document.querySelector('.panel-scroll');
+          if (scrollContainer){
+            const boxTop   = curEl.getBoundingClientRect().top;
+            const panelTop = scrollContainer.getBoundingClientRect().top;
+            scrollContainer.scrollBy({ top: boxTop - panelTop - 40, behavior: 'smooth' });
+          }
+        }
+      }
+
+    }
+
+
+    async function fetchNearby(latLng, kind){
+      // kind: 'tour' | 'hotel' | 'food'
+
+      // 예시 contentTypeId 매핑 (한국관광공사 TourAPI 기준 많이 쓰는 값)
+      const typeMap = {
+        tour:  '12', // 관광지
+        hotel: '32', // 숙박
+        food:  '39'  // 음식점
+      };
+
+      const contentTypeId = typeMap[kind];
+      const radiusM = 500; // 반경 500m 같은거. 네가 쓰던 값에 맞춰
+
+      const lat = latLng.getLat();
+      const lng = latLng.getLng();
+
+      // TODO: 아래 URL, query string은 실제 너 app.js에서 쓰던거 복붙
+      const url = `/tourapi/nearby?lat=${lat}&lng=${lng}&radius=${radiusM}&type=${contentTypeId}`;
+
+      try{
+        const resp = await fetch(url);
+        const json = await resp.json();
+
+        // 우리가 쓸 형태로 정규화: [{title, addr, lat, lng, tel, img}, ...]
+        // app.js에서 이미 파싱하던 형태 따라가면 돼.
+        return (json.items || []).map(item => ({
+          title: item.title || item.place || '(이름없음)',
+          addr:  item.addr  || item.address || '',
+          lat:   item.mapy || item.lat,
+          lng:   item.mapx || item.lng,
+          tel:   item.tel   || '',
+          img:   item.firstimage || ''
+        }));
+      } catch(e){
+        console.warn('fetchNearby fail', kind, e);
+        return [];
+      }
+    }
+
+
+    panelClose.addEventListener('click', () => {
+      sidePanel.classList.remove('open');
+    });
+
+    /* 7) 연대표 렌더링/토글 + 클릭/드래그 커서 */
+    const fabTimeline   = document.getElementById('fabTimeline');
+    const panelTimeline = document.getElementById('timelinePanel');
+    const bar           = document.getElementById('timelineBar');
+    const ticks         = document.getElementById('timelineTicks');
+    const tip           = document.getElementById('timelineTip');
+    const closeBtn      = document.getElementById('closeTimeline');
+
+    // 커서 DOM
+    const yearCursor = document.createElement('div'); yearCursor.className = 'year-cursor';
+    const yearBadge  = document.createElement('div'); yearBadge.className  = 'year-badge';
+    const yearHandle = document.createElement('div'); yearHandle.className = 'year-handle';
+    const yearHandleTxt = document.createElement('div'); yearHandleTxt.className='txt';
+    yearHandle.appendChild(yearHandleTxt);
+
+    function yearToPercent(y){ return ((y - TL_START) / TL_SPAN) * 100; }
+    function percentToYear(p){ return Math.round(TL_START + TL_SPAN * (p/100)); }
+
+    function showYearCursorAt(year){
+      const p = yearToPercent(year);
+      yearCursor.style.left = `calc(${p}% - 1px)`;
+      yearCursor.style.display = 'block';
+      yearBadge.style.left  = `${p}%`;
+      yearBadge.textContent = String(year);
+      yearBadge.style.display = 'block';
+      yearHandle.style.left = `${p}%`;
+      yearHandleTxt.textContent = String(year);
+      yearHandle.style.display = 'flex';
+    }
+    function hideYearCursor(){
+      yearCursor.style.display = 'none';
+      yearBadge .style.display = 'none';
+      yearHandle.style.display = 'none';
+    }
+
+    function chooseLayerByYear(y){
+      if (y < 1940) {
+        setYear('1919');
+      } else if (y >= 1965 && y <= 1979) {
+        setYear('1970');
+      }
+      // 그 외는 유지
+    }
+
+    function placeYearCursor(year){
+      year = Math.max(TL_START, Math.min(TL_END, year|0));
+      showYearCursorAt(year);
+      chooseLayerByYear(year);
+      showPinsForYear(year); // 해당 연도 마커 표시
+    }
+
+    // 드래그 지원
+    let dragging = false;
+    function pxToYear(clientX){
+      const rect = bar.getBoundingClientRect();
+      const px   = Math.max(0, Math.min(rect.width, clientX - rect.left));
+      const p    = (px/rect.width)*100;
+      return percentToYear(p);
+    }
+    bar.addEventListener('mousedown', (e) => {
+      dragging = true;
+      placeYearCursor(pxToYear(e.clientX));
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (dragging) placeYearCursor(pxToYear(e.clientX));
+    });
+    window.addEventListener('mouseup',   ()  => { dragging = false; });
+
+    // 눈금 라벨 클릭
+    ticks.addEventListener('click', (e) => {
+      if (e.target.classList.contains('tick-label')) {
+        placeYearCursor(parseInt(e.target.textContent, 10));
+      }
+    });
+
+    function renderTimeline(){
+      bar.innerHTML = '';
+      ticks.innerHTML = '';
+
+      // 구간 블록
+      PERIODS.forEach(p => {
+        const l = Math.max(TL_START, p.start);
+        const r = Math.min(TL_END,   p.end);
+        const left  = yearToPercent(l);
+        const right = yearToPercent(r);
+        const width = Math.max(0, right - left);
+
+        const el = document.createElement('div');
+        el.className = 'period';
+        el.style.left  = left + '%';
+        el.style.width = width + '%';
+        el.style.background = p.color;
+        el.innerHTML = `<span>${p.label}</span>`;
+        el.dataset.label = p.label;
+        el.dataset.range = `${p.start}–${p.end === NOW_YEAR ? '현재' : p.end}`;
+        el.addEventListener('mousemove', (e) => {
+          tip.style.display = 'block';
+          tip.style.left = (e.clientX - panelTimeline.getBoundingClientRect().left) + 'px';
+          tip.style.top  = (bar.getBoundingClientRect().top - panelTimeline.getBoundingClientRect().top) + 'px';
+          tip.textContent = `${el.dataset.label} (${el.dataset.range})`;
+        });
+        el.addEventListener('mouseleave', () => tip.style.display = 'none');
+        bar.appendChild(el);
+      });
+
+      // 50년 간격 눈금
+      const step = 50;
+      for (let y = Math.ceil(TL_START/step)*step; y <= TL_END; y += step){
+        const x = yearToPercent(y);
+        const t = document.createElement('div');
+        t.className = 'tick'; t.style.left = x + '%';
+        ticks.appendChild(t);
+
+        const lab = document.createElement('div');
+        lab.className = 'tick-label'; lab.style.left = x + '%'; lab.textContent = String(y);
+        lab.addEventListener('click', () => placeYearCursor(y));
+        ticks.appendChild(lab);
+      }
+
+      // 커서 DOM 마지막에 부착
+      bar.appendChild(yearHandle);
+      bar.appendChild(yearCursor);
+      bar.appendChild(yearBadge);
+      hideYearCursor();
+    }
+
+    // 라벨 너비에 맞게 줄이기
+    function shrinkRepublicLabel(txt){
+      return txt
+        .replace(/^대한민국\s*/g, '')
+        .replace(/^제(\d)공화국$/, '제$1공화국')
+        .replace(/^제(\d)공화국$/, '$1공화국')
+        .replace(/^(\d)공화국$/, '$1공');
+    }
+    function fitPeriodLabels(){
+      document.querySelectorAll('.period').forEach(el => {
+        const span = el.querySelector('span'); if (!span) return;
+        const original = span.getAttribute('data-original') || span.textContent;
+        span.setAttribute('data-original', original);
+        let text = original;
+        const boxWidth = el.getBoundingClientRect().width;
+        span.textContent = text;
+        const need = () => span.scrollWidth > boxWidth - 12;
+        if (need()){ text = shrinkRepublicLabel(original); span.textContent = text; }
+        if (need()){ text = shrinkRepublicLabel(text);     span.textContent = text; }
+        if (need()){ text = shrinkRepublicLabel(text);     span.textContent = text; }
+        let fs = parseFloat(getComputedStyle(el).fontSize) || 15;
+        while (need() && fs > 11){
+          fs -= 0.5;
+          el.style.fontSize = fs + 'px';
+        }
+        el.title = original;
+      });
+    }
+
+    // 연대표 패널 토글
+    function openTimeline(){ panelTimeline.style.display = 'block'; }
+    function closeTimeline(){ panelTimeline.style.display = 'none';  }
+    fabTimeline.addEventListener('click', () => {
+      const show = panelTimeline.style.display !== 'block';
+      if (show) openTimeline(); else closeTimeline();
+    });
+    closeBtn.addEventListener('click', closeTimeline);
+
+    renderTimeline();
+    fitPeriodLabels();
+
+    window.addEventListener('resize', () => {
+      fitPeriodLabels();
+    });
+
+    // ====== 초기 로딩 순서 ======
+    (async () => {
+      // 1. hist_points.json 로드
+      await loadHistPoints();
+      // 2. history_data.csv 로드해서 personAddrMap 구성
+      await loadPersonAddrCSV();
+      // 3. 초기 연도(예: 1919년) 기준으로 마커 그리기
+      placeYearCursor(1919);
+    })();
+
+  });
+});
+</script>
+</body>
+</html>
