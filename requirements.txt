@@ -1,0 +1,22 @@
+fastapi==0.115.0        # server.py (API 서버)
+uvicorn[standard]==0.30.1  # FastAPI 실행용
+
+requests==2.32.3        # 외부 API 호출, 크롤러, kakao_geocode, google.py
+beautifulsoup4==4.12.3  # namu_drama_crawler, actor_mode_crawler 등 HTML 파싱
+lxml==5.3.0             # HTML/XML 파싱 성능 개선용 (bs4와 같이 사용)
+
+pandas==2.2.2           # CSV 가공, append_coords, csvSearch 등
+numpy==1.26.4           # pandas/수치 연산 보조
+tqdm==4.66.5            # 크롤링 진행률 표시(사용 중인 경우)
+
+python-dotenv==1.0.1    # GOOGLE_API_KEY, CX 등 .env에서 불러올 때
+pydantic==2.9.0         # FastAPI 모델 정의
+
+# ---- RAG/임베딩(사용 중일 경우) ----
+sentence-transformers==3.0.1  # 문장 임베딩
+faiss-cpu==1.8.0.post1        # 벡터 검색
+scikit-learn==1.5.2           # 벡터/유사도 계산 유틸(사용 시)
+
+# ---- 필요시 (로컬 LLM/추가 기능 쓰면) ----
+# transformers==4.44.2
+# torch==2.4.0
