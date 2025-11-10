@@ -31,7 +31,8 @@ RAG(Retrieval-Augmented Generation)와 공공데이터를 결합하여:
   - 등장 작품/에피소드/배우 정보
   - 행정구역 및 좌표 후보
 - 중복/오류 데이터 정제 후 CSV/JSON 형태로 제공
-<img width="1673" height="1013" alt="image" src="https://github.com/user-attachments/assets/9ab9350c-7803-465d-ae31-39a34bb1bf76" />
+<img width="838" height="5006" alt="image" src="https://github.com/user-attachments/assets/9ab9350c-7803-465d-ae31-39a34bb1bf76" />
+<img width="838" height="5006" alt="image" src="https://github.com/user-attachments/assets/9ab9350c-7803-465d-ae31-39a34bb1bf76" />
 
 ### 2. 공공데이터 매칭
 
