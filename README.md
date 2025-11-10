@@ -33,7 +33,7 @@ RAG(Retrieval-Augmented Generation)와 공공데이터를 결합하여:
 - 중복/오류 데이터 정제 후 CSV/JSON 형태로 제공
 <p align="center">
   <img width="420" alt="image" src="https://github.com/user-attachments/assets/9ab9350c-7803-465d-ae31-39a34bb1bf76" />
-  <img width="420" alt="image" src="https://github.com/user-attachments/assets/9ab9350c-7803-465d-ae31-39a34bb1bf76" />
+  <img width="420" alt="image" src="https://github.com/user-attachments/assets/5e899e1d-04eb-4d7f-9adc-c54947bc3fde" />
 </p>
 
 ### 2. 공공데이터 매칭
