@@ -15,10 +15,8 @@
 
 ## 📸 Project Showcase
 
-> 아래 이미지는 예시입니다. 레포에 `samples/` 폴더를 만들고 캡처 이미지를 넣어주세요.
-
 ![Demo Preview](samples/demo_01.png)
-![Demo Preview](samples/demo_02.png)
+![Demo Preview](samples/demo_02.png) 
 ![Demo Preview](samples/demo_03.png)
 
 - Demo URL: https://app.magiclab.kr/  *(운영 URL이 다르면 수정)*
