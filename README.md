@@ -165,7 +165,7 @@ linkStyle default stroke-width:3px,stroke:black;
 | **Backend**        | FastAPI (Python)	      | 검색/추천/챗봇/근처 추천 API |
 | **RAG**    | 검색 + LLM + 구조화	       | 촬영지 후보 추출 및 근거 기반 정리               |
 | **Data** | CSV / JSON / Cache	 | 데이터 누적, 재현성, 빠른 로딩       |
-| **Vector Store**               | RAG	                  | 유사도 기반 검색/증강                      |	
+| **Vector Store**               | -	                  | 유사도 기반 검색/증강                      |	
  	
 <br/>
 
